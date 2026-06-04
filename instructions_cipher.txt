@@ -1,0 +1,26 @@
+Two places:
+
+1. Re-run the full suite yourself:
+
+
+ssh awake@192.168.1.25
+BENCH_DISK_DIR=/home/awake bash /home/awake/experiment_ble/cipher_tests/run_all.sh
+Or just one script at a time:
+
+
+ssh awake@192.168.1.25 '/home/awake/experiment_ble/cipher_tests/.venv/bin/python /home/awake/experiment_ble/cipher_tests/test_cipher.py'
+ssh awake@192.168.1.25 '/home/awake/experiment_ble/cipher_tests/.venv/bin/python /home/awake/experiment_ble/cipher_tests/bench_cipher.py'
+2. The benchmark CSV is on the RPi at /tmp/bench_cipher.csv — pull it to your laptop:
+
+
+scp awake@192.168.1.25:/tmp/bench_cipher.csv /tmp/bench_cipher.csv
+Then open it in Excel/LibreOffice or load in Python:
+
+
+import pandas as pd
+df = pd.read_csv('/tmp/bench_cipher.csv')
+print(df.to_string())
+The CSV has one summary row per benchmark/storage/payload combination with columns: benchmark, storage, payload_bytes, n, min_ms, mean_ms, p50_ms, p95_ms, p99_ms, max_ms, stdev_ms.
+
+The scripts themselves live locally at experiment_ble/cipher_tests/ if you want to read or modify them before re-running.
+

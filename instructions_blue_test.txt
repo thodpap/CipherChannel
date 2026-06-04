@@ -1,0 +1,1 @@
+experiment_ble/client/.venv/bin/python experiment_ble/client/experiment_client.py   --address B8:27:EB:07:01:22 --connect-once --trials 100 --delay 0.2 --action TAKE_STEP --prefix s
