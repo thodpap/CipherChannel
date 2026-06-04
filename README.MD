@@ -7,7 +7,7 @@ experiment scripts used to produce the paper's results.
 
 > **Note — reimplementation.**  
 > The `CipherChannel` cryptographic protocol (`shared/cipher.py`,
-> `awake-esp32/esp32/CipherChannel.*`) is a Python and C++ reimplementation of an
+> `esp32/CipherChannel.*`) is a Python and C++ reimplementation of an
 > original protocol designed by Björn Bergman Turkiewicz. The counter-nonce scheme,
 > direction-parity rules, and persistence guarantees are faithful reproductions of his
 > design. All surrounding BLE infrastructure (GATT server, client, key exchange,
@@ -91,7 +91,7 @@ experiment_ble/
 │   ├── experiment_client.py       # Laptop BLE client (bleak)
 │   └── requirements.txt           # bleak, pycryptodome
 │
-├── awake-esp32/esp32/
+├── esp32/
 │   ├── esp32.ino                  # Arduino sketch entry point
 │   ├── BLEProtocol.h/.cpp         # BLE central logic (scan, connect, key exchange)
 │   ├── CipherChannel.h/.cpp       # C++ CipherChannel (AES-256-GCM via mbedTLS)
@@ -157,7 +157,7 @@ can omit the flag on most machines.
 
 ### ESP32
 
-Open `awake-esp32/esp32/esp32.ino` in Arduino IDE. Install the **esp32 by Espressif**
+Open `esp32/esp32.ino` in Arduino IDE. Install the **esp32 by Espressif**
 board package via Boards Manager. Flash to your ESP32. No external libraries are
 needed — `CipherChannel` uses the mbedTLS and Preferences libraries bundled with the
 ESP32 Arduino core.
