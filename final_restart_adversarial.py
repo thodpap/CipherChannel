@@ -79,7 +79,7 @@ def tc03_tampered_ciphertext_rejected():
     """Single byte flip in ciphertext body must fail GCM auth."""
     ini, res = _pair()
     pkt = bytearray(ini.send(b'walk forward'))
-    pkt[16] ^= 0xFF          # flip first ciphertext byte (after 16-byte nonce)
+    pkt[12] ^= 0xFF          # flip first ciphertext byte (after 12-byte nonce)
     assert res.receive(bytes(pkt)) is None
 
 
@@ -135,10 +135,10 @@ def tc09_send_counter_survives_restart():
     CipherChannel.create(k, False, f'{pfx}_r')
     for _ in range(5):
         ini.send(b'ping')
-    last_n = int.from_bytes(ini.send(b'last')[:16], 'little')
+    last_n = int.from_bytes(ini.send(b'last')[:12], 'little')
 
     ini2 = CipherChannel.load(f'{pfx}_i')
-    next_n = int.from_bytes(ini2.send(b'after reload')[:16], 'little')
+    next_n = int.from_bytes(ini2.send(b'after reload')[:12], 'little')
     assert next_n > last_n, f"counter regressed: {last_n} → {next_n}"
     assert next_n % 2 == 0,  f"parity lost after reload (nonce={next_n})"
 

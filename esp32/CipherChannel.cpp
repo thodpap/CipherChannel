@@ -1,61 +1,53 @@
 #include "CipherChannel.h"
 
-// NVS key names (each ≤ 15 chars)
+// NVS key names (each ≤ 15 chars per Preferences API limit)
+#define NVS_K_SFV      "sfv"      //  1 byte:  state format version
+#define NVS_K_PV       "pv"       //  1 byte:  protocol version
 #define NVS_K_KEY      "key"      // 32 bytes: AES-256 key
-#define NVS_K_SEQSEND  "seqSend"  //  8 bytes: send counter  (uint64_t)
-#define NVS_K_SEQRECV  "seqRecv"  //  8 bytes: receive counter (uint64_t)
+#define NVS_K_SEQSEND  "seqSend"  // 12 bytes: 96-bit send counter  (cc_counter_t)
+#define NVS_K_SEQRECV  "seqRecv"  // 12 bytes: 96-bit receive counter (cc_counter_t)
 
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-// Encode a uint64_t counter into the 16-byte little-endian nonce.
-// Upper 8 bytes are zero: counters fit in 64 bits in any realistic deployment
-// (2^63 messages per direction ≈ 9 × 10^18 packets).
-static void counter_to_nonce(uint64_t counter, uint8_t nonce[CC_NONCE_LEN]) {
-    memset(nonce, 0, CC_NONCE_LEN);
-    for (int i = 0; i < 8; i++) {
-        nonce[i] = static_cast<uint8_t>((counter >> (i * 8)) & 0xFF);
-    }
+// Counter bytes ARE the nonce bytes (both 12-byte LE) — memcpy suffices.
+static void counter_to_nonce(const cc_counter_t& c, uint8_t nonce[CC_NONCE_LEN]) {
+    memcpy(nonce, c.b, CC_NONCE_LEN);
 }
 
-// Read the lower 64 bits of a 16-byte LE nonce back as a uint64_t.
-static uint64_t nonce_to_counter(const uint8_t nonce[CC_NONCE_LEN]) {
-    uint64_t val = 0;
-    for (int i = 0; i < 8; i++) {
-        val |= static_cast<uint64_t>(nonce[i]) << (i * 8);
-    }
-    return val;
+static cc_counter_t nonce_to_counter(const uint8_t nonce[CC_NONCE_LEN]) {
+    cc_counter_t c;
+    memcpy(c.b, nonce, CC_NONCE_LEN);
+    return c;
 }
 
-// PKCS7 pad `in` to the next AES block boundary.
-static void pkcs7_pad(const uint8_t* in, size_t inLen,
-                      uint8_t* out, size_t& outLen) {
-    uint8_t pad = static_cast<uint8_t>(CC_BLOCK - (inLen % CC_BLOCK));
-    memcpy(out, in, inLen);
-    memset(out + inLen, pad, pad);
-    outLen = inLen + pad;
+
+// ── Constructor / Destructor ──────────────────────────────────────────────────
+
+CipherChannel::CipherChannel()
+    : _mutex(xSemaphoreCreateMutex())
+{
+    memset(_key, 0, sizeof(_key));
+    memset(_ns,  0, sizeof(_ns));
+    _seqSend = cc_counter_t::zero();
+    _seqRecv = cc_counter_t::zero();
 }
 
-// PKCS7 unpad.  Returns false and sets outLen=0 on invalid padding.
-static bool pkcs7_unpad(const uint8_t* in, size_t inLen,
-                        uint8_t* out, size_t& outLen) {
-    outLen = 0;
-    if (inLen == 0 || (inLen % CC_BLOCK) != 0) return false;
-    uint8_t pad = in[inLen - 1];
-    if (pad == 0 || pad > CC_BLOCK) return false;
-    for (size_t i = 0; i < pad; i++) {
-        if (in[inLen - 1 - i] != pad) return false;
+CipherChannel::~CipherChannel() {
+    memset(_key, 0, sizeof(_key));
+    if (_mutex) {
+        vSemaphoreDelete(_mutex);
+        _mutex = nullptr;
     }
-    outLen = inLen - pad;
-    memcpy(out, in, outLen);
-    return true;
 }
 
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
 // Write send + receive counters only (called on every send/receive).
-// _seqSend is written first so the nonce-reuse guarantee holds even on crash.
+// _seqSend is written before _seqRecv to preserve nonce non-reuse on crash.
+// Preferences::end() calls nvs_commit() — writes are power-loss durable.
+// Must be called while _mutex is held.
 bool CipherChannel::_writeCounters() {
     Preferences prefs;
     if (!prefs.begin(_ns, /*readOnly=*/false)) {
@@ -63,14 +55,15 @@ bool CipherChannel::_writeCounters() {
         return false;
     }
     bool ok = true;
-    ok &= (prefs.putBytes(NVS_K_SEQSEND, &_seqSend, sizeof(_seqSend)) == sizeof(_seqSend));
-    ok &= (prefs.putBytes(NVS_K_SEQRECV, &_seqRecv, sizeof(_seqRecv)) == sizeof(_seqRecv));
-    prefs.end();
+    ok &= (prefs.putBytes(NVS_K_SEQSEND, _seqSend.b, CC_NONCE_LEN) == CC_NONCE_LEN);
+    ok &= (prefs.putBytes(NVS_K_SEQRECV, _seqRecv.b, CC_NONCE_LEN) == CC_NONCE_LEN);
+    prefs.end();   // commits to NVS flash (power-loss durable)
     if (!ok) Serial.printf("[CC/%s] NVS counter write failed\n", _ns);
     return ok;
 }
 
-// Write the full state: key + counters (called by create() and updateKey()).
+// Write the full state: versions + key + counters.
+// Called by create() and updateKey(). Must be called while _mutex is held.
 bool CipherChannel::_writeState() {
     Preferences prefs;
     if (!prefs.begin(_ns, /*readOnly=*/false)) {
@@ -78,11 +71,15 @@ bool CipherChannel::_writeState() {
         return false;
     }
     bool ok = true;
-    // Write send counter first — most critical for nonce non-reuse
-    ok &= (prefs.putBytes(NVS_K_SEQSEND, &_seqSend, sizeof(_seqSend)) == sizeof(_seqSend));
-    ok &= (prefs.putBytes(NVS_K_SEQRECV, &_seqRecv, sizeof(_seqRecv)) == sizeof(_seqRecv));
-    ok &= (prefs.putBytes(NVS_K_KEY,     _key,       CC_KEY_LEN)      == CC_KEY_LEN);
-    prefs.end();
+    uint8_t sfv = CC_STATE_FORMAT_VERSION;
+    uint8_t pv  = CC_PROTOCOL_VERSION;
+    ok &= (prefs.putBytes(NVS_K_SFV,     &sfv,        1)          == 1);
+    ok &= (prefs.putBytes(NVS_K_PV,      &pv,         1)          == 1);
+    // Write send counter first — most critical for nonce non-reuse on crash
+    ok &= (prefs.putBytes(NVS_K_SEQSEND, _seqSend.b, CC_NONCE_LEN) == CC_NONCE_LEN);
+    ok &= (prefs.putBytes(NVS_K_SEQRECV, _seqRecv.b, CC_NONCE_LEN) == CC_NONCE_LEN);
+    ok &= (prefs.putBytes(NVS_K_KEY,     _key,        CC_KEY_LEN)   == CC_KEY_LEN);
+    prefs.end();   // commits to NVS flash
     if (!ok) Serial.printf("[CC/%s] NVS state write failed\n", _ns);
     return ok;
 }
@@ -94,14 +91,20 @@ CipherChannel* CipherChannel::create(const uint8_t* key,
                                      bool           initiator,
                                      const char*    nvsNamespace) {
     CipherChannel* c = new CipherChannel();
+    if (!c->_mutex) {
+        Serial.println("[CC] FATAL: failed to create mutex — heap exhausted");
+        delete c;
+        return nullptr;
+    }
+
     strncpy(c->_ns, nvsNamespace, sizeof(c->_ns) - 1);
     c->_ns[sizeof(c->_ns) - 1] = '\0';
     memcpy(c->_key, key, CC_KEY_LEN);
 
     // Initiator sends even counters: 0 → 2 → 4 …   receives odd:  1, 3, 5 …
     // Responder sends odd  counters: 1 → 3 → 5 …   receives even: 0, 2, 4 …
-    c->_seqSend = initiator ? 0u : 1u;
-    c->_seqRecv = initiator ? 1u : 0u;
+    c->_seqSend = initiator ? cc_counter_t::zero() : cc_counter_t::one();
+    c->_seqRecv = initiator ? cc_counter_t::one()  : cc_counter_t::zero();
 
     if (!c->_writeState()) {
         delete c;
@@ -117,17 +120,30 @@ CipherChannel* CipherChannel::create(const uint8_t* key,
 CipherChannel* CipherChannel::load(const char* nvsNamespace) {
     Preferences prefs;
     if (!prefs.begin(nvsNamespace, /*readOnly=*/true)) {
-        Serial.printf("[CC/%s] NVS open failed — namespace not found?\n", nvsNamespace);
+        Serial.printf("[CC/%s] NVS namespace not found\n", nvsNamespace);
         return nullptr;
     }
 
-    // Validate stored sizes before reading
+    // Validate state format and protocol versions (fail closed on mismatch)
+    uint8_t sfv = 0, pv = 0;
+    if (prefs.getBytesLength(NVS_K_SFV) == 1) prefs.getBytes(NVS_K_SFV, &sfv, 1);
+    if (prefs.getBytesLength(NVS_K_PV)  == 1) prefs.getBytes(NVS_K_PV,  &pv,  1);
+
+    if (sfv != CC_STATE_FORMAT_VERSION || pv != CC_PROTOCOL_VERSION) {
+        Serial.printf("[CC/%s] Incompatible state: sfv=%u pv=%u (expected sfv=%u pv=%u)\n",
+                      nvsNamespace, sfv, pv,
+                      CC_STATE_FORMAT_VERSION, CC_PROTOCOL_VERSION);
+        prefs.end();
+        return nullptr;
+    }
+
+    // Validate stored field sizes before reading
     size_t keyLen  = prefs.getBytesLength(NVS_K_KEY);
     size_t sendLen = prefs.getBytesLength(NVS_K_SEQSEND);
     size_t recvLen = prefs.getBytesLength(NVS_K_SEQRECV);
 
-    if (keyLen != CC_KEY_LEN || sendLen != sizeof(uint64_t) || recvLen != sizeof(uint64_t)) {
-        Serial.printf("[CC/%s] NVS state corrupted or missing "
+    if (keyLen != CC_KEY_LEN || sendLen != CC_NONCE_LEN || recvLen != CC_NONCE_LEN) {
+        Serial.printf("[CC/%s] NVS state corrupted or truncated "
                       "(key=%u seqSend=%u seqRecv=%u)\n",
                       nvsNamespace, keyLen, sendLen, recvLen);
         prefs.end();
@@ -135,16 +151,27 @@ CipherChannel* CipherChannel::load(const char* nvsNamespace) {
     }
 
     CipherChannel* c = new CipherChannel();
+    if (!c->_mutex) {
+        Serial.println("[CC] FATAL: failed to create mutex — heap exhausted");
+        prefs.end();
+        delete c;
+        return nullptr;
+    }
+
     strncpy(c->_ns, nvsNamespace, sizeof(c->_ns) - 1);
     c->_ns[sizeof(c->_ns) - 1] = '\0';
 
-    prefs.getBytes(NVS_K_KEY,     c->_key,      CC_KEY_LEN);
-    prefs.getBytes(NVS_K_SEQSEND, &c->_seqSend, sizeof(c->_seqSend));
-    prefs.getBytes(NVS_K_SEQRECV, &c->_seqRecv, sizeof(c->_seqRecv));
+    prefs.getBytes(NVS_K_KEY,     c->_key,       CC_KEY_LEN);
+    prefs.getBytes(NVS_K_SEQSEND, c->_seqSend.b, CC_NONCE_LEN);
+    prefs.getBytes(NVS_K_SEQRECV, c->_seqRecv.b, CC_NONCE_LEN);
     prefs.end();
 
+    // Log the lower 8 bytes as uint64_t for diagnostics (upper 4 are zero in practice)
+    uint64_t sendLo = 0, recvLo = 0;
+    memcpy(&sendLo, c->_seqSend.b, sizeof(sendLo));
+    memcpy(&recvLo, c->_seqRecv.b, sizeof(recvLo));
     Serial.printf("[CC/%s] loaded (seqSend=%llu seqRecv=%llu)\n",
-                  nvsNamespace, c->_seqSend, c->_seqRecv);
+                  nvsNamespace, sendLo, recvLo);
     return c;
 }
 
@@ -153,58 +180,66 @@ CipherChannel* CipherChannel::load(const char* nvsNamespace) {
 
 bool CipherChannel::send(const uint8_t* plaintext, size_t len,
                          uint8_t* out, size_t& outLen) {
-    if (len > CC_MAX_PLAIN) {
-        Serial.printf("[CC/%s] send: plaintext too large (%u > %u)\n",
-                      _ns, len, CC_MAX_PLAIN);
-        return false;
-    }
+    if (!_mutex || xSemaphoreTake(_mutex, portMAX_DELAY) != pdTRUE) return false;
 
-    // 1. Increment send counter by 2 and persist BEFORE producing the nonce.
-    //    If the device crashes after this write but before the BLE write, the
-    //    counter is already advanced — the nonce will never be reused.
-    _seqSend += 2;
-    if (!_writeCounters()) return false;
+    bool ok = false;
+    do {
+        if (len > CC_MAX_PLAIN) {
+            Serial.printf("[CC/%s] send: plaintext too large (%u > %u)\n",
+                          _ns, (unsigned)len, CC_MAX_PLAIN);
+            break;
+        }
 
-    // 2. Build 16-byte little-endian nonce from _seqSend.
-    uint8_t nonce[CC_NONCE_LEN];
-    counter_to_nonce(_seqSend, nonce);
+        // 1. Exhaustion check before incrementing.
+        if (_seqSend.near_max()) {
+            Serial.printf("[CC/%s] send: counter exhausted — provision a new key\n", _ns);
+            break;
+        }
 
-    // 3. PKCS7 pad the plaintext.
-    uint8_t padded[CC_MAX_PLAIN + CC_BLOCK];
-    size_t  paddedLen;
-    pkcs7_pad(plaintext, len, padded, paddedLen);
+        // 2. Increment send counter and persist BEFORE producing the nonce.
+        //    If the device crashes after this write, the nonce will never be reused.
+        _seqSend.increment2();
+        if (!_writeCounters()) break;
 
-    // 4. AES-256-GCM encrypt.
-    //    Output layout: nonce(16) || ciphertext(paddedLen) || tag(16)
-    uint8_t* cipherOut = out + CC_NONCE_LEN;
-    uint8_t* tagOut    = cipherOut + paddedLen;
+        // 3. Build 12-byte nonce from _seqSend (direct copy — same layout).
+        uint8_t nonce[CC_NONCE_LEN];
+        counter_to_nonce(_seqSend, nonce);
 
-    mbedtls_gcm_context gcm;
-    mbedtls_gcm_init(&gcm);
+        // 4. AES-256-GCM encrypt plaintext directly (no padding).
+        //    Output layout: nonce(12) || ciphertext(len) || tag(16)
+        uint8_t* cipherOut = out + CC_NONCE_LEN;
+        uint8_t* tagOut    = cipherOut + len;
 
-    int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, _key, 256);
-    if (ret != 0) {
-        Serial.printf("[CC/%s] GCM setkey failed: %d\n", _ns, ret);
+        mbedtls_gcm_context gcm;
+        mbedtls_gcm_init(&gcm);
+
+        int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, _key, 256);
+        if (ret != 0) {
+            Serial.printf("[CC/%s] GCM setkey failed: %d\n", _ns, ret);
+            mbedtls_gcm_free(&gcm);
+            break;
+        }
+
+        ret = mbedtls_gcm_crypt_and_tag(&gcm, MBEDTLS_GCM_ENCRYPT,
+                                        len,
+                                        nonce,   CC_NONCE_LEN,
+                                        nullptr, 0,
+                                        plaintext, cipherOut,
+                                        CC_TAG_LEN, tagOut);
         mbedtls_gcm_free(&gcm);
-        return false;
-    }
 
-    ret = mbedtls_gcm_crypt_and_tag(&gcm, MBEDTLS_GCM_ENCRYPT,
-                                    paddedLen,
-                                    nonce,  CC_NONCE_LEN,
-                                    nullptr, 0,           // no additional data
-                                    padded, cipherOut,
-                                    CC_TAG_LEN, tagOut);
-    mbedtls_gcm_free(&gcm);
+        if (ret != 0) {
+            Serial.printf("[CC/%s] GCM encrypt failed: %d\n", _ns, ret);
+            break;
+        }
 
-    if (ret != 0) {
-        Serial.printf("[CC/%s] GCM encrypt failed: %d\n", _ns, ret);
-        return false;
-    }
+        memcpy(out, nonce, CC_NONCE_LEN);
+        outLen = CC_NONCE_LEN + len + CC_TAG_LEN;
+        ok = true;
+    } while (false);
 
-    memcpy(out, nonce, CC_NONCE_LEN);
-    outLen = CC_NONCE_LEN + paddedLen + CC_TAG_LEN;
-    return true;
+    xSemaphoreGive(_mutex);
+    return ok;
 }
 
 
@@ -214,80 +249,78 @@ bool CipherChannel::receive(const uint8_t* packet, size_t len,
                             uint8_t* out, size_t& outLen) {
     outLen = 0;
 
-    // 1. Length checks: need at least nonce + tag; ciphertext must be block-aligned.
-    if (len < CC_NONCE_LEN + CC_TAG_LEN) return false;
-    size_t ciphertextLen = len - CC_NONCE_LEN - CC_TAG_LEN;
-    if (ciphertextLen == 0 || (ciphertextLen % CC_BLOCK) != 0) return false;
+    if (!_mutex || xSemaphoreTake(_mutex, portMAX_DELAY) != pdTRUE) return false;
 
-    // 2. Extract counter from nonce and enforce freshness + parity.
-    const uint8_t* nonce     = packet;
-    uint64_t       sequence  = nonce_to_counter(nonce);
+    bool ok = false;
+    do {
+        // 1. Length checks: minimum 28 bytes (nonce + tag, empty ciphertext);
+        //    maximum CC_MAX_PACKET_LEN.
+        if (len < CC_NONCE_LEN + CC_TAG_LEN) break;
+        if (len > CC_MAX_PACKET_LEN) break;
+        size_t ciphertextLen = len - CC_NONCE_LEN - CC_TAG_LEN;
 
-    // Replay check: counter must be strictly greater than last received.
-    // Parity check: counter parity must match _seqRecv parity (direction coding).
-    if (sequence <= _seqRecv || (sequence & 1u) != (_seqRecv & 1u)) return false;
+        // 2. Extract counter from nonce and enforce freshness + parity
+        //    BEFORE decryption to avoid wasted crypto work on replays.
+        const uint8_t* nonce    = packet;
+        cc_counter_t   incoming = nonce_to_counter(nonce);
 
-    // 3. AES-256-GCM decrypt + authenticate.
-    const uint8_t* ciphertext = packet + CC_NONCE_LEN;
-    const uint8_t* tag        = packet + CC_NONCE_LEN + ciphertextLen;
+        if (!incoming.gt(_seqRecv)) break;                          // replay / not fresh
+        if (incoming.parity() != _seqRecv.parity()) break;         // wrong direction
 
-    uint8_t padded[CC_MAX_PLAIN + CC_BLOCK];
-    if (ciphertextLen > sizeof(padded)) return false;
+        // 3. AES-256-GCM decrypt + authenticate.
+        const uint8_t* ciphertext = packet + CC_NONCE_LEN;
+        const uint8_t* tag        = packet + CC_NONCE_LEN + ciphertextLen;
 
-    mbedtls_gcm_context gcm;
-    mbedtls_gcm_init(&gcm);
+        if (ciphertextLen > CC_MAX_PLAIN) break;
 
-    int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, _key, 256);
-    if (ret != 0) {
-        Serial.printf("[CC/%s] GCM setkey failed: %d\n", _ns, ret);
+        mbedtls_gcm_context gcm;
+        mbedtls_gcm_init(&gcm);
+
+        int ret = mbedtls_gcm_setkey(&gcm, MBEDTLS_CIPHER_ID_AES, _key, 256);
+        if (ret != 0) {
+            Serial.printf("[CC/%s] GCM setkey failed: %d\n", _ns, ret);
+            mbedtls_gcm_free(&gcm);
+            break;
+        }
+
+        ret = mbedtls_gcm_auth_decrypt(&gcm, ciphertextLen,
+                                       nonce,      CC_NONCE_LEN,
+                                       nullptr,    0,
+                                       tag,        CC_TAG_LEN,
+                                       ciphertext, out);
         mbedtls_gcm_free(&gcm);
-        return false;
-    }
 
-    ret = mbedtls_gcm_auth_decrypt(&gcm, ciphertextLen,
-                                   nonce,     CC_NONCE_LEN,
-                                   nullptr,   0,
-                                   tag,       CC_TAG_LEN,
-                                   ciphertext, padded);
-    mbedtls_gcm_free(&gcm);
+        if (ret != 0) break;   // tampered ciphertext, tag, or wrong key
 
-    // GCM authentication failed: tampered ciphertext, tag, or wrong key.
-    if (ret != 0) return false;
+        // 4. Accept: persist new receive counter BEFORE returning plaintext.
+        //    If NVS write fails, zero the output to avoid exposing plaintext
+        //    without the replay-protection counter being updated.
+        _seqRecv = incoming;
+        if (!_writeCounters()) {
+            memset(out, 0, ciphertextLen);
+            break;
+        }
 
-    // 4. PKCS7 unpad.
-    if (!pkcs7_unpad(padded, ciphertextLen, out, outLen)) return false;
+        outLen = ciphertextLen;
+        ok = true;
+    } while (false);
 
-    // 5. Accept: persist new receive counter BEFORE returning plaintext.
-    //    If this NVS write fails, we zero the output and reject to avoid
-    //    exposing plaintext without the replay-protection counter being updated.
-    _seqRecv = sequence;
-    if (!_writeCounters()) {
-        memset(out, 0, outLen);
-        outLen = 0;
-        return false;
-    }
-
-    return true;
+    xSemaphoreGive(_mutex);
+    return ok;
 }
 
 
 // ── updateKey ─────────────────────────────────────────────────────────────────
 
 bool CipherChannel::updateKey(const uint8_t* newKey, bool initiator) {
+    if (!_mutex || xSemaphoreTake(_mutex, portMAX_DELAY) != pdTRUE) return false;
+
     memcpy(_key, newKey, CC_KEY_LEN);
-    _seqSend = initiator ? 0u : 1u;
-    _seqRecv = initiator ? 1u : 0u;
+    _seqSend = initiator ? cc_counter_t::zero() : cc_counter_t::one();
+    _seqRecv = initiator ? cc_counter_t::one()  : cc_counter_t::zero();
     bool ok = _writeState();
     if (ok) Serial.printf("[CC/%s] key updated (initiator=%d)\n", _ns, initiator);
+
+    xSemaphoreGive(_mutex);
     return ok;
-}
-
-
-// ── Destructor ────────────────────────────────────────────────────────────────
-
-CipherChannel::~CipherChannel() {
-    // Securely erase key material from RAM before freeing.
-    memset(_key, 0, sizeof(_key));
-    _seqSend = 0;
-    _seqRecv = 0;
 }

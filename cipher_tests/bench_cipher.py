@@ -30,7 +30,7 @@ BENCH_CSV      = os.environ.get('BENCH_CSV',      '/tmp/bench_cipher.csv')
 BENCH_DISK_DIR = os.environ.get('BENCH_DISK_DIR', '/home/awake')
 TMPFS_DIR      = '/tmp'
 
-N             = 300    # trials per configuration (after warmup)
+N             = 10000  # trials per configuration (after warmup)
 WARMUP        = 30     # discarded warm-up rounds
 PAYLOAD_SIZES = [16, 64, 128, 256, 512, 1024]
 THROUGHPUT_N  = 1000
@@ -58,14 +58,14 @@ def _pct(data: list[float], p: float) -> float:
 
 def _stats(samples: list[float]) -> dict:
     return {
-        'n':     len(samples),
-        'min':   round(min(samples), 4),
-        'mean':  round(statistics.mean(samples), 4),
-        'p50':   round(_pct(samples, 50), 4),
-        'p95':   round(_pct(samples, 95), 4),
-        'p99':   round(_pct(samples, 99), 4),
-        'max':   round(max(samples), 4),
-        'stdev': round(statistics.stdev(samples), 4),
+        'n':        len(samples),
+        'min_ms':   round(min(samples), 4),
+        'mean_ms':  round(statistics.mean(samples), 4),
+        'p50_ms':   round(_pct(samples, 50), 4),
+        'p95_ms':   round(_pct(samples, 95), 4),
+        'p99_ms':   round(_pct(samples, 99), 4),
+        'max_ms':   round(max(samples), 4),
+        'stdev_ms': round(statistics.stdev(samples), 4),
     }
 
 
@@ -126,8 +126,8 @@ def _print_section(title: str):
 def _print_row(size: int, s: dict):
     print(
         f"  {size:>6}  {s['n']:>4}  "
-        f"{s['min']:>8.4f}  {s['mean']:>8.4f}  {s['p50']:>8.4f}  "
-        f"{s['p95']:>8.4f}  {s['p99']:>8.4f}  {s['max']:>8.4f}  {s['stdev']:>7.4f}"
+        f"{s['min_ms']:>8.4f}  {s['mean_ms']:>8.4f}  {s['p50_ms']:>8.4f}  "
+        f"{s['p95_ms']:>8.4f}  {s['p99_ms']:>8.4f}  {s['max_ms']:>8.4f}  {s['stdev_ms']:>7.4f}"
     )
 
 
@@ -173,8 +173,8 @@ def main():
         for label, state_dir in [('tmpfs', TMPFS_DIR), ('disk', BENCH_DISK_DIR)]:
             s = _stats(bench_roundtrip(state_dir, 64))
             print(f"  {label:<8}  n={s['n']}  "
-                  f"mean={s['mean']:.4f}  p50={s['p50']:.4f}  "
-                  f"p95={s['p95']:.4f}  p99={s['p99']:.4f}  max={s['max']:.4f}  ms")
+                  f"mean={s['mean_ms']:.4f}  p50={s['p50_ms']:.4f}  "
+                  f"p95={s['p95_ms']:.4f}  p99={s['p99_ms']:.4f}  max={s['max_ms']:.4f}  ms")
             rows.append({'benchmark': 'roundtrip_storage_cmp', 'storage': label,
                          'payload_bytes': 64, **s})
 

@@ -2,6 +2,7 @@
 #include <nvs.h>
 #include <nvs_flash.h>
 #include <Arduino.h>
+#include <vector>
 
 BLEProtocol *bleProtocolInstance = nullptr; // For static callback access
 
@@ -115,15 +116,45 @@ void BLEProtocol::transmitMessage(const char* message) {
     if (connected && message != nullptr) {
         uint8_t ciphertext[CC_MAX_PACKET_LEN];
         size_t ciphertextLen = sizeof(ciphertext);
-        if (!secureChannel->send((const uint8_t*)message, strlen(message), ciphertext, ciphertextLen)) {
-            Serial.println("Encryption failed");
+
+        if (!secureChannel->send(
+                reinterpret_cast<const uint8_t*>(message),
+                strlen(message),
+                ciphertext,
+                ciphertextLen)
+        ) {
+            Serial.println("[BLE] Encryption failed");
             return;
         }
-        cane2phoneCharacteristic->writeValue(ciphertext, ciphertextLen);
-        Serial.print("Message sent: ");
+
+        cane2phoneCharacteristic->writeValue(
+            ciphertext,
+            ciphertextLen
+        );
+
+        Serial.print("[BLE] Message sent: ");
         Serial.println(message);
-    } else if (doScan) {
-        BLEDevice::getScan()->start(0);
+        return;
+    }
+
+    if (!connected && doScan) {
+        Serial.println("[BLE] Not connected. Starting BLE scan...");
+
+        BLEScan* scan = BLEDevice::getScan();
+
+        if (scan == nullptr) {
+            Serial.println("[BLE] Failed to obtain BLE scanner");
+            return;
+        }
+        scan->start(0);
+        Serial.println("[BLE] BLE scan started");
+        return;
+    }
+
+    if (message == nullptr) {
+        Serial.println("[BLE] Cannot transmit: message is null");
+    } else {
+        Serial.println("[BLE] Cannot transmit: disconnected and scanning is disabled");
     }
 }
 
@@ -314,8 +345,11 @@ void BLEProtocol::setSecureKey(const unsigned char *_key, size_t keyLength) {
     memcpy(secureKey, _key, 32);
     storeSecureKey(_key, 32);
     secureChannel->updateKey(secureKey, true);  // initiator=true: send even, receive odd
-    channel->updateKey(key, true);              // reset base channel to original key
-    Serial.println("Sequence state reset for BOTH channels.");
+    // Do NOT reset the base channel — its counter must keep increasing so the
+    // next STOP_SHARING (counter N+2) is strictly greater than the REQUEST_KEY
+    // counter (N) the server already accepted.  Resetting to zero causes the
+    // STOP_SHARING to arrive with nonce=2, which the server treats as a replay.
+    Serial.println("Secure channel key updated.");
 }
 
 void BLEProtocol::clearSecureKey() {
@@ -378,23 +412,37 @@ void BLEProtocol::requestSecureKey() {
     // bless 0.3.0 does not send GATT notify packets even when char.value is set.
     // The server populates the characteristic synchronously inside its write
     // handler, so by the time writeValue() returns the ATT Write Response the
-    // encrypted key is already there.  Poll-read until we see the 80-byte
-    // response: nonce(16) + PKCS7-padded-key(48) + GCM-tag(16) = 80 bytes.
+    // encrypted key is already there.  Poll-read until we see the 60-byte
+    // response: nonce(12) + ciphertext(32) + GCM-tag(16) = 60 bytes.
     for (int attempt = 0; attempt < 10; ++attempt) {
-        delay(200);
-        std::string val = caneSecurityCharacteristic->readValue();
-        if ((int)val.size() == 80) {
-            Serial.println("requestSecureKey: key received via poll");
-            notifyCallback(
-                caneSecurityCharacteristic,
-                reinterpret_cast<uint8_t*>(const_cast<char*>(val.data())),
-                val.size(),
-                false
-            );
-            return;
-        }
+      delay(200);
+  
+      String val = caneSecurityCharacteristic->readValue();
+  
+      Serial.printf(
+          "requestSecureKey: attempt %d, received %u bytes\n",
+          attempt + 1,
+          static_cast<unsigned>(val.length())
+      );
+  
+      if (val.length() == 60) {
+          Serial.println("requestSecureKey: key received via poll");
+  
+          uint8_t buffer[60];
+          memcpy(buffer, val.c_str(), sizeof(buffer));
+  
+          notifyCallback(
+              caneSecurityCharacteristic,
+              buffer,
+              sizeof(buffer),
+              false
+          );
+  
+          return;
+      }
     }
-    Serial.println("requestSecureKey: no key response from server after 2 s");
+  
+    Serial.println("requestSecureKey: key not received via polling");
 }
 
 void BLEProtocol::stopSharingSecureKey() {

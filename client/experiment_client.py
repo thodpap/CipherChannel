@@ -11,6 +11,13 @@ Experiment B — steady-state (--connect-once):
   Then send N commands over the same connection.
   Measures pure write/ACK latency with no connection overhead.
 
+Experiment C — reconnect with persistent session (--key-once):
+  Key exchange only on the first connection (or if no persisted session exists).
+  Every trial: scan → connect → send → disconnect, reusing the same session key.
+  Measures reconnect latency without key exchange overhead.
+  The session channel state is persisted at KEY_ONCE_SESSION_PATH between runs.
+  Pass --reset-key to force a fresh key exchange on the next run.
+
 Note: This script runs on a Fedora laptop (x86_64) as the supervisory client.
   It substitutes for the Android phone app in experiments, using the same
   CipherChannel packet format and BLE/GATT command path.
@@ -23,6 +30,8 @@ Output CSV (default /tmp/experiment_client.csv):
 
   In --connect-once mode, t_scan_ms / t_connect_ms / t_key_exchange_ms are
   recorded only on trial 1; empty on subsequent trials.
+  In --key-once mode, t_key_exchange_ms is recorded only on the trial where
+  the key exchange actually happens (trial 1, or after --reset-key).
 
 Usage:
     # Experiment A (reconnect per trial):
@@ -31,6 +40,10 @@ Usage:
     # Experiment B (steady-state, connect once):
     python3 experiment_client.py --address B8:27:EB:07:01:22 --connect-once --trials 500 --action STAND_UP
     python3 experiment_client.py --address B8:27:EB:07:01:22 --connect-once --trials 500 --delay 0.2 --action START_WALKING
+
+    # Experiment C (reconnect, key exchange only on first connection):
+    python3 experiment_client.py --address B8:27:EB:07:01:22 --key-once --trials 30 --action STAND_UP
+    python3 experiment_client.py --address B8:27:EB:07:01:22 --key-once --reset-key --trials 30 --action STAND_UP
 """
 
 import argparse
@@ -60,6 +73,8 @@ ACK_UUID      = "51FF12BC-3ED8-46E5-B4F9-D64E2FEC021B"
 KEY: bytes = b'*\xc3,6s\xa4\xa2\xeeI\x08S>\xd0\xff%\x84\xba\xe9\x95\xcaNL\xffzL%h\x04)\x04%\xf8'
 
 CLIENT_CSV: str = os.environ.get('EXPERIMENT_CLIENT_CSV_PATH', '/tmp/experiment_client.csv')
+_KEY_ONCE_SESSION_PATH: str = os.environ.get('KEY_ONCE_SESSION_PATH',
+                                              '/tmp/cc_session_client_keyonce')
 
 _CSV_COLUMNS = [
     'trial_id', 'action', 't_sent_ns',
@@ -73,8 +88,8 @@ _ACK_TIMEOUT       = 10.0   # seconds to wait for ACK before giving up
 _KEY_POLL_INTERVAL = 0.1    # seconds between polls for SECURE_KEY
 _KEY_TIMEOUT       = 10.0   # seconds to wait for SECURE_KEY
 
-# Encrypted 32-byte key: nonce(16) + PKCS7-padded(48) + tag(16) = 80 bytes
-_ENCRYPTED_KEY_LEN = 80
+# Encrypted 32-byte key: nonce(12) + ciphertext(32) + tag(16) = 60 bytes
+_ENCRYPTED_KEY_LEN = 60
 
 
 # ── CSV helpers ───────────────────────────────────────────────────────────────
@@ -108,7 +123,7 @@ async def _key_exchange(client: BleakClient, session_id: str) -> bytes:
     Write REQUEST_KEY to SECURITY char, then poll-read until the server puts
     the CipherChannel-encrypted SECURE_KEY there.  Returns raw 32-byte SECURE_KEY.
 
-    Wire format (new): nonce(16) || PKCS7-padded-ciphertext(48) || tag(16) = 80 bytes.
+    Wire format: nonce(12) || ciphertext(32) || tag(16) = 60 bytes.
     Client is responder on the transport channel (server sends even nonces, client receives).
     """
     transport_path = f'/tmp/cc_transport_client_{session_id}'
@@ -421,6 +436,171 @@ async def run_trials_steady_state(
     print(f"\nJoin on 'trial_id' for end-to-end latency breakdown.")
 
 
+# ── Experiment C: reconnect with persistent session (key exchange only once) ──
+
+async def _run_key_once_trial(
+    address: str | None,
+    name: str | None,
+    trial_id: str,
+    action: str,
+    secure_ch: CipherChannel | None,
+) -> tuple[dict, CipherChannel | None]:
+    """
+    Single trial for --key-once mode.  Returns (row_dict, secure_ch).
+
+    secure_ch is None on entry when no session exists yet; in that case a
+    full key exchange is performed and the new channel is returned for reuse
+    by subsequent trials.  The channel's state file is written to
+    _KEY_ONCE_SESSION_PATH so it survives reconnects and process restarts.
+    """
+    r: dict = {c: '' for c in _CSV_COLUMNS}
+    r.update({'trial_id': trial_id, 'action': action, 'success': False})
+    t_trial_start = time.perf_counter_ns()
+
+    try:
+        # 1. Scan
+        t0 = time.perf_counter_ns()
+        if address:
+            ble_device = await BleakScanner.find_device_by_address(address, timeout=8.0)
+        else:
+            ble_device = await BleakScanner.find_device_by_name(name, timeout=8.0)
+        r['t_scan_ms'] = round((time.perf_counter_ns() - t0) / 1e6, 1)
+
+        if ble_device is None:
+            r['error'] = f'device not found ({address or name})'
+            r['t_total_ms'] = round((time.perf_counter_ns() - t_trial_start) / 1e6, 1)
+            return r, secure_ch
+
+        # 2. Connect
+        t0     = time.perf_counter_ns()
+        client = BleakClient(ble_device)
+        await client.connect()
+        r['t_connect_ms'] = round((time.perf_counter_ns() - t0) / 1e6, 1)
+
+        try:
+            if not client.is_connected:
+                r['error'] = 'connection failed'
+                r['t_total_ms'] = round((time.perf_counter_ns() - t_trial_start) / 1e6, 1)
+                return r, secure_ch
+
+            # 3. Key exchange — only if no session exists yet
+            if secure_ch is None:
+                session_id = _uuid_mod.uuid4().hex[:12]
+                t0 = time.perf_counter_ns()
+                secure_key = await _key_exchange(client, session_id)
+                r['t_key_exchange_ms'] = round((time.perf_counter_ns() - t0) / 1e6, 1)
+                # Persist channel to fixed path; counter survives reconnects
+                secure_ch = CipherChannel.create(secure_key, True, _KEY_ONCE_SESSION_PATH)
+
+            # 4. Send encrypted command
+            payload = json.dumps({"trial_id": trial_id, "action": action}).encode()
+            enc = secure_ch.send(payload)
+
+            r['t_sent_ns'] = time.perf_counter_ns()
+            t0             = time.perf_counter_ns()
+            try:
+                await client.write_gatt_char(COMMAND_UUID, enc, response=True)
+            except Exception as e:
+                r['error'] = f"write:{e}"
+                r['t_total_ms'] = round((time.perf_counter_ns() - t_trial_start) / 1e6, 1)
+                return r, secure_ch
+            r['t_write_ms'] = round((time.perf_counter_ns() - t0) / 1e6, 1)
+
+            # 5. Poll ACK char until "OK:<trial_id>"
+            expected = f"OK:{trial_id}".encode()
+            deadline = asyncio.get_event_loop().time() + _ACK_TIMEOUT
+            t0       = time.perf_counter_ns()
+            while asyncio.get_event_loop().time() < deadline:
+                try:
+                    val = bytes(await client.read_gatt_char(ACK_UUID))
+                except Exception as e:
+                    r['error'] = f"ack_read:{e}"
+                    break
+                if val == expected:
+                    r['t_ack_ms'] = round((time.perf_counter_ns() - t0) / 1e6, 1)
+                    r['success']  = True
+                    break
+                await asyncio.sleep(_ACK_POLL_INTERVAL)
+            else:
+                if not r['error']:
+                    r['error'] = 'ACK timeout'
+
+        finally:
+            await client.disconnect()
+
+    except Exception as e:
+        r['error'] = str(e)
+
+    r['t_total_ms'] = round((time.perf_counter_ns() - t_trial_start) / 1e6, 1)
+    return r, secure_ch
+
+
+async def run_trials_key_once(
+    address: str | None,
+    name: str | None,
+    trials: int,
+    action: str,
+    delay: float,
+    prefix: str,
+    reset_key: bool,
+) -> None:
+    _init_csv()
+
+    if reset_key and os.path.exists(_KEY_ONCE_SESSION_PATH):
+        os.unlink(_KEY_ONCE_SESSION_PATH)
+        print(f"Cleared persisted session state ({_KEY_ONCE_SESSION_PATH})")
+
+    # Try to resume a session from a previous run
+    secure_ch: CipherChannel | None = None
+    try:
+        secure_ch = CipherChannel.load(_KEY_ONCE_SESSION_PATH)
+        print(f"Resumed persisted session from {_KEY_ONCE_SESSION_PATH}")
+    except (ChannelException, FileNotFoundError):
+        pass
+
+    target = address or name
+    print(f"Target      : {target}")
+    print(f"Mode        : key-once  (Experiment C — key exchange on first connection only)")
+    print(f"Trials      : {trials}  action={action!r}  delay={delay} s")
+    if secure_ch:
+        print(f"Session     : loaded — skipping key exchange on trial 1")
+    else:
+        print(f"Session     : none — key exchange will happen on trial 1")
+    print()
+
+    ok = fail = 0
+    for i in range(1, trials + 1):
+        trial_id = f"{prefix}{i:04d}"
+        print(f"  [{i:4d}/{trials}]  {trial_id} …", end='', flush=True)
+
+        r, secure_ch = await _run_key_once_trial(
+            address, name, trial_id, action, secure_ch)
+
+        _append_row(r)
+        if r['success']:
+            ok += 1
+            parts = [f"scan={r['t_scan_ms']} ms", f"conn={r['t_connect_ms']} ms"]
+            if r.get('t_key_exchange_ms'):
+                parts.append(f"kex={r['t_key_exchange_ms']} ms")
+            parts += [f"write={r['t_write_ms']} ms",
+                      f"ack={r['t_ack_ms']} ms",
+                      f"total={r['t_total_ms']} ms"]
+            print(f"  ✓  " + "  ".join(parts))
+        else:
+            fail += 1
+            print(f"  ✗  {r['error']}  (total={r['t_total_ms']} ms)")
+
+        if i < trials:
+            await asyncio.sleep(delay)
+
+    print(f"\n{'─' * 60}")
+    print(f"Results: {ok} ok  /  {fail} failed  /  {trials} total")
+    print(f"Session : {_KEY_ONCE_SESSION_PATH}  (reuse with --key-once on next run)")
+    print(f"\nClient CSV  → {CLIENT_CSV}")
+    print(f"Server CSV  → /tmp/experiment_server.csv  (on RPi)")
+    print(f"\nJoin on 'trial_id' for end-to-end latency breakdown.")
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -439,11 +619,24 @@ def main() -> None:
                    help="Experiment B: scan/connect/key-exchange once; run all trials over the same connection.")
     p.add_argument('--key-exchange-once', action='store_true',
                    help="Alias for --connect-once.")
+    p.add_argument('--key-once', action='store_true',
+                   help="Experiment C: key exchange on first connection only; "
+                        "subsequent trials reconnect and reuse the persisted session. "
+                        f"Session state stored at KEY_ONCE_SESSION_PATH "
+                        f"(default {_KEY_ONCE_SESSION_PATH}).")
+    p.add_argument('--reset-key', action='store_true',
+                   help="With --key-once: delete persisted session state and force a "
+                        "fresh key exchange on the first trial. "
+                        "Also use this after the server has been restarted.")
     args = p.parse_args()
 
-    steady_state = args.connect_once or args.key_exchange_once
-
-    if steady_state:
+    if args.key_once:
+        asyncio.run(run_trials_key_once(
+            args.address, args.name,
+            args.trials, args.action, args.delay, args.prefix,
+            args.reset_key,
+        ))
+    elif args.connect_once or args.key_exchange_once:
         asyncio.run(run_trials_steady_state(
             args.address, args.name,
             args.trials, args.action, args.delay, args.prefix,

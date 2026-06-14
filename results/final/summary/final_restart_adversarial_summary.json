@@ -3,24 +3,24 @@
   "total": 13,
   "passed": 13,
   "failed": 0,
-  "total_duration_ms": 11.1,
+  "total_duration_ms": 9.9,
   "tests": [
     {
       "test": "TC01 normal send/receive after fresh provisioning",
       "result": "PASS",
-      "duration_ms": 8.48,
+      "duration_ms": 7.81,
       "note": ""
     },
     {
       "test": "TC02 replay of accepted packet rejected",
       "result": "PASS",
-      "duration_ms": 0.25,
+      "duration_ms": 0.18,
       "note": ""
     },
     {
       "test": "TC03 tampered ciphertext rejected",
       "result": "PASS",
-      "duration_ms": 0.13,
+      "duration_ms": 0.12,
       "note": ""
     },
     {
@@ -32,43 +32,43 @@
     {
       "test": "TC05 tampered nonce rejected",
       "result": "PASS",
-      "duration_ms": 0.12,
+      "duration_ms": 0.07,
       "note": ""
     },
     {
       "test": "TC06 wrong key rejected",
       "result": "PASS",
-      "duration_ms": 0.14,
+      "duration_ms": 0.1,
       "note": ""
     },
     {
       "test": "TC07 reflection: initiator rejects own packet",
       "result": "PASS",
-      "duration_ms": 0.12,
+      "duration_ms": 0.07,
       "note": ""
     },
     {
       "test": "TC08 stale counter rejected after newer accepted",
       "result": "PASS",
-      "duration_ms": 0.21,
+      "duration_ms": 0.16,
       "note": ""
     },
     {
       "test": "TC09 send counter survives restart",
       "result": "PASS",
-      "duration_ms": 0.35,
+      "duration_ms": 0.32,
       "note": ""
     },
     {
       "test": "TC10 recv counter survives restart",
       "result": "PASS",
-      "duration_ms": 0.65,
+      "duration_ms": 0.56,
       "note": ""
     },
     {
       "test": "TC11 replay rejected after receiver restart",
       "result": "PASS",
-      "duration_ms": 0.18,
+      "duration_ms": 0.13,
       "note": ""
     },
     {
@@ -80,7 +80,7 @@
     {
       "test": "TC13 counter reset under same key detected as stale",
       "result": "PASS",
-      "duration_ms": 0.27,
+      "duration_ms": 0.22,
       "note": ""
     }
   ],

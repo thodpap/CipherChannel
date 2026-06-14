@@ -2,60 +2,139 @@
 #define CIPHER_CHANNEL_H
 
 /*
- * CipherChannel — AES-256-GCM with persistent counter nonces (Björn's protocol).
+ * CipherChannel — AES-256-GCM with persistent counter nonces.
  *
- * Wire format:  nonce(16) || ciphertext || tag(16)
- *   nonce       = _seqSend as a 16-byte little-endian unsigned integer
- *   ciphertext  = AES-256-GCM( PKCS7(plaintext) )  using nonce as IV
+ * Wire format:  nonce(12) || ciphertext(N) || tag(16)
+ *   nonce       = _seqSend as a 12-byte little-endian 96-bit unsigned integer
+ *   ciphertext  = AES-256-GCM(plaintext, nonce)  — no padding, len == plaintext len
  *   tag         = 16-byte GCM authentication tag
+ *   Fixed overhead = 28 bytes
  *
  * Direction parity:
- *   initiator  sends even counters (2, 4, 6, …)   and expects odd  from the other side
- *   responder  sends odd  counters (3, 5, 7, …)   and expects even from the other side
+ *   initiator  sends even counters (2, 4, 6, …)   expects odd  from the other side
+ *   responder  sends odd  counters (3, 5, 7, …)   expects even from the other side
  *
  * Counter rules:
+ *   - Counter is a 96-bit unsigned integer (cc_counter_t) stored and transmitted
+ *     as 12 little-endian bytes.  The in-memory layout IS the wire nonce field.
  *   - _seqSend is incremented by 2 and persisted to NVS BEFORE producing the packet.
- *   - A received counter must be strictly greater than _seqRecv AND have the same parity.
+ *   - Counter freshness and parity are checked BEFORE decryption.
  *   - _seqRecv is persisted to NVS BEFORE the plaintext is exposed to the caller.
  *   - Counters never reset under the same key.
+ *   - Counter exhaustion is detected when counter + 2 would exceed 2^96 − 1.
+ *
+ * Thread safety:
+ *   Each CipherChannel holds a FreeRTOS mutex (_mutex).  The complete critical
+ *   section of send() (exhaustion check → increment → persist → encrypt) and the
+ *   complete critical section of receive() (freshness/parity check → decrypt →
+ *   persist) and updateKey() are each executed under a single mutex acquisition.
  *
  * Persistence:
- *   The Arduino Preferences library (NVS) is used.  Pass a short namespace string
- *   (≤ 15 chars) to create() / load() — use different namespaces for different channels.
+ *   Preferences (NVS) is used.  Preferences::end() calls nvs_commit() internally,
+ *   making writes power-loss durable.  Pass a short namespace string (≤ 15 chars)
+ *   to create() / load().  Use different namespaces for different channels.
+ *
+ * Endpoint isolation:
+ *   Maintain separate namespaces and CipherChannel instances per endpoint.
+ *   Phone packets encrypted under K_phone will fail GCM auth on the cane
+ *   context keyed with K_cane, and vice-versa.
+ *
+ * BLE transport constraint (protocol version 1):
+ *   MAX_PLAINTEXT_SIZE is derived from empirical GATT long-write testing.
+ *   400 B plaintext → 428 B packet fits within the evaluated BLE configuration.
+ *
+ * State format version 2 / Protocol version 1.
+ *   State format version was bumped from 1→2 when counter storage changed from
+ *   8-byte uint64_t to 12-byte cc_counter_t.  Old NVS state (sfv=1) is rejected
+ *   on load and the channel must be reprovisioned.
  *
  * Usage:
  *   // First boot / provisioning:
- *   CipherChannel* ch = CipherChannel::create(key, /*initiator=* /true, "cc_main");
+ *   CipherChannel* ch = CipherChannel::create(key, true, "cc_phone");
+ *   if (!ch) { /* handle NVS / heap failure *\/ }
  *
  *   // Every subsequent boot:
- *   CipherChannel* ch = CipherChannel::load("cc_main");
- *   if (!ch) { /* handle corrupted / missing state * / }
+ *   CipherChannel* ch = CipherChannel::load("cc_phone");
+ *   if (!ch) { /* handle missing / incompatible state — reprovision *\/ }
  *
  *   // Encrypt:
- *   uint8_t pkt[CipherChannel::maxPacketSize(plaintextLen)];
+ *   uint8_t pkt[CC_MAX_PACKET_LEN];
  *   size_t  pktLen;
- *   if (!ch->send(plaintext, len, pkt, pktLen)) { /* handle error * / }
+ *   if (!ch->send(plaintext, len, pkt, pktLen)) { /* handle error *\/ }
  *
  *   // Decrypt:
- *   uint8_t plain[512];
+ *   uint8_t plain[CC_MAX_PLAIN];
  *   size_t  plainLen;
- *   if (!ch->receive(packet, packetLen, plain, plainLen)) { /* reject * / }
+ *   if (!ch->receive(packet, packetLen, plain, plainLen)) { /* reject *\/ }
  */
 
 #include <Arduino.h>
 #include <Preferences.h>
 #include "mbedtls/gcm.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+// ── Protocol / state versioning ───────────────────────────────────────────────
+#define CC_PROTOCOL_VERSION     1u
+#define CC_STATE_FORMAT_VERSION 2u  // v2: counter storage changed 8B→12B
 
 // ── Packet geometry constants ──────────────────────────────────────────────────
-#define CC_NONCE_LEN      16u   // 128-bit little-endian counter
+#define CC_NONCE_LEN      12u   // 96-bit little-endian counter (IETF AES-GCM standard)
 #define CC_TAG_LEN        16u   // GCM authentication tag
-#define CC_BLOCK          16u   // AES block size (for PKCS7)
 #define CC_KEY_LEN        32u   // AES-256
-#define CC_MAX_PLAIN     512u   // maximum plaintext bytes per packet
+#define CC_MAX_PLAIN     400u   // max plaintext bytes: 400 B → 428 B packet fits BLE
 
-// Maximum output buffer size for send():
-//   nonce(16) + padded(plain + up to 16) + tag(16)
-#define CC_MAX_PACKET_LEN (CC_NONCE_LEN + CC_MAX_PLAIN + CC_BLOCK + CC_TAG_LEN)
+// Fixed overhead = CC_NONCE_LEN + CC_TAG_LEN = 28 bytes; ciphertext len == plaintext len
+#define CC_MAX_PACKET_LEN (CC_NONCE_LEN + CC_MAX_PLAIN + CC_TAG_LEN)  // 428 bytes
+
+
+// ── 96-bit counter type ───────────────────────────────────────────────────────
+//
+// Stored and transmitted as a 12-byte little-endian unsigned integer.
+// The in-memory layout is identical to the wire nonce field — no conversion needed
+// between counter and nonce; a memcpy suffices.
+//
+// All arithmetic and comparisons treat the 12 bytes as a single 96-bit integer
+// with b[0] as the least-significant byte.
+
+struct cc_counter_t {
+    uint8_t b[CC_NONCE_LEN];   // b[0] = LSB, b[11] = MSB
+
+    // Zero and one sentinels used for initiator/responder initialisation.
+    static cc_counter_t zero() { cc_counter_t c{}; return c; }
+    static cc_counter_t one()  { cc_counter_t c{}; c.b[0] = 1u; return c; }
+
+    // Bit 0 of the least-significant byte (same parity as the counter value).
+    uint8_t parity() const { return b[0] & 1u; }
+
+    // Returns true if this counter is strictly greater than other.
+    bool gt(const cc_counter_t& o) const {
+        for (int i = CC_NONCE_LEN - 1; i >= 0; --i) {
+            if (b[i] > o.b[i]) return true;
+            if (b[i] < o.b[i]) return false;
+        }
+        return false;   // equal → not strictly greater
+    }
+
+    // Returns true if counter + 2 would exceed 2^96 − 1.
+    // Equivalently: counter >= 2^96 − 2  (b[0] >= 0xFE while b[1..11] are all 0xFF).
+    // Caller MUST check this before calling increment2().
+    bool near_max() const {
+        for (int i = 1; i < CC_NONCE_LEN; ++i)
+            if (b[i] != 0xFFu) return false;
+        return b[0] >= 0xFEu;
+    }
+
+    // Add 2 to the 96-bit little-endian counter.  Undefined behaviour if near_max().
+    void increment2() {
+        uint16_t carry = 2u;
+        for (int i = 0; i < CC_NONCE_LEN && carry; ++i) {
+            carry += b[i];
+            b[i]   = static_cast<uint8_t>(carry & 0xFFu);
+            carry >>= 8;
+        }
+    }
+};
 
 
 class CipherChannel {
@@ -66,57 +145,53 @@ public:
     // key         : CC_KEY_LEN (32) bytes
     // initiator   : true  → send even counters, receive odd
     //               false → send odd  counters, receive even
-    // nvsNamespace: NVS namespace, ≤ 15 chars
-    // Returns nullptr on NVS failure.
+    // nvsNamespace: NVS namespace, ≤ 15 chars (use different NS per endpoint)
+    // Returns nullptr on NVS write failure or FreeRTOS heap exhaustion.
     static CipherChannel* create(const uint8_t* key,
                                  bool           initiator,
                                  const char*    nvsNamespace);
 
     // ── Factory: load existing channel state from NVS ──────────────────────────
-    // Returns nullptr if the namespace is missing or the stored state is corrupted.
+    // Returns nullptr if the namespace is missing, the state is corrupted or
+    // truncated, or the state/protocol format version does not match.
     static CipherChannel* load(const char* nvsNamespace);
 
     // ── Encrypt ────────────────────────────────────────────────────────────────
-    // Increments and persists _seqSend BEFORE producing the nonce, so the counter
-    // can never be reused even on a crash between send() and the BLE write.
+    // Acquires _mutex, checks exhaustion, increments and persists _seqSend,
+    // then encrypts.  Plaintext longer than CC_MAX_PLAIN is rejected.
     // out must be at least CC_MAX_PACKET_LEN bytes.
-    // Returns true on success, false on any error (NVS failure, GCM error, …).
+    // Returns true on success, false on any error (mutex released on all paths).
     bool send(const uint8_t* plaintext, size_t len,
               uint8_t* out, size_t& outLen);
 
     // ── Decrypt & validate ────────────────────────────────────────────────────
-    // Silently returns false (no error detail exposed to caller) for:
-    //   - short / mis-aligned packet
-    //   - counter ≤ last received  (replay)
-    //   - counter parity mismatch  (reflection / wrong direction)
-    //   - GCM authentication failure (tampered data, wrong key)
-    //   - bad PKCS7 padding
-    //   - NVS write failure after successful auth
+    // Acquires _mutex.  Checks counter freshness and parity BEFORE decryption.
+    // Silently returns false for: short/oversized packet, replay, parity
+    // mismatch, GCM auth failure, or NVS write failure after successful auth.
     // out must be at least CC_MAX_PLAIN bytes.
     bool receive(const uint8_t* packet, size_t len,
                  uint8_t* out, size_t& outLen);
 
     // ── Key rotation ──────────────────────────────────────────────────────────
-    // Replace the key and reset counters.  Persists new state immediately.
-    // initiator flag determines which parity this endpoint sends.
+    // Acquires _mutex.  Replaces the key, resets counters, and persists.
     bool updateKey(const uint8_t* newKey, bool initiator);
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
+    // ── Packet size helper ────────────────────────────────────────────────────
     static size_t maxPacketSize(size_t plaintextLen) {
-        size_t padded = plaintextLen + (CC_BLOCK - (plaintextLen % CC_BLOCK));
-        return CC_NONCE_LEN + padded + CC_TAG_LEN;
+        return CC_NONCE_LEN + plaintextLen + CC_TAG_LEN;
     }
 
 private:
-    CipherChannel() {}  // use create() or load()
+    CipherChannel();   // use create() or load()
 
-    bool _writeCounters();  // persist _seqSend + _seqRecv (called on every send/receive)
-    bool _writeState();     // persist key + _seqSend + _seqRecv (called on create/updateKey)
+    bool _writeCounters();  // persist _seqSend + _seqRecv; called inside mutex
+    bool _writeState();     // persist version + key + counters; called inside mutex
 
-    uint8_t  _key[CC_KEY_LEN];
-    char     _ns[16];        // NVS namespace (Preferences limit: 15 chars + '\0')
-    uint64_t _seqSend;       // send counter  (pre-incremented by 2 before each use)
-    uint64_t _seqRecv;       // last accepted receive counter
+    uint8_t           _key[CC_KEY_LEN];
+    char              _ns[16];          // NVS namespace (max 15 chars + '\0')
+    cc_counter_t      _seqSend;         // 96-bit send counter
+    cc_counter_t      _seqRecv;         // 96-bit last-accepted receive counter
+    SemaphoreHandle_t _mutex;           // FreeRTOS mutex; protects all state
 };
 
 #endif // CIPHER_CHANNEL_H
