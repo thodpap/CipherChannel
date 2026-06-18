@@ -1,0 +1,46 @@
+{
+  "condition": "8m_wall",
+  "description": "8 - 10 m through one wall, stress-test to induce failures",
+  "mode": "persistent_connection",
+  "n_trials": 200,
+  "n_success": 43,
+  "success_rate": "21.5%",
+  "disconnected": true,
+  "setup": {
+    "scan_ms": 1669.757,
+    "connect_ms": 5439.711,
+    "kex_ms": 950.888
+  },
+  "latency_ms": {
+    "write_ms": {
+      "n": 43,
+      "mean": 158.888,
+      "median": 124.185,
+      "stdev": 93.259,
+      "p95": 350.405,
+      "p99": 394.295,
+      "min": 77.159,
+      "max": 394.295
+    },
+    "ack_wait_ms": {
+      "n": 43,
+      "mean": 146.426,
+      "median": 133.993,
+      "stdev": 77.856,
+      "p95": 314.948,
+      "p99": 450.15,
+      "min": 88.98,
+      "max": 450.15
+    },
+    "total_ms": {
+      "n": 43,
+      "mean": 305.328,
+      "median": 259.175,
+      "stdev": 143.481,
+      "p95": 619.299,
+      "p99": 664.438,
+      "min": 167.216,
+      "max": 664.438
+    }
+  }
+}

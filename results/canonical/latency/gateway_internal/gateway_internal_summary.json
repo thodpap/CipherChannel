@@ -1,0 +1,98 @@
+{
+  "n_rows": 1000,
+  "input": "/home/thodpap/repos/CT-Engineering/exoskeleton-paper/CipherChannel/results/canonical/latency/gateway_internal/gateway_internal_server_raw.csv",
+  "note": "Stage ordering in cipher.py receive(): parse \u2192 validate (T3) \u2192 crypto (T2) \u2192 persist (T4). T3 (freshness/direction validation) precedes T2 (AES-GCM) \u2014 the user-facing label order in the experiment spec differs from execution order. ACK is plaintext (ack_encrypt_ms = 0 by design). BLE notification delivery latency (NOT measured here) dominates end-to-end latency.",
+  "phases": {
+    "parse_ms": {
+      "label": "packet parse (nonce extract + seq decode)",
+      "stats": {
+        "n": 1000,
+        "mean": 0.0295,
+        "median": 0.0289,
+        "stdev": 0.0105,
+        "p95": 0.0314,
+        "p99": 0.042,
+        "min": 0.0158,
+        "max": 0.1809
+      }
+    },
+    "freshness_valid_ms": {
+      "label": "freshness + direction-parity validation",
+      "stats": {
+        "n": 1000,
+        "mean": 0.0032,
+        "median": 0.0032,
+        "stdev": 0.0031,
+        "p95": 0.0034,
+        "p99": 0.0045,
+        "min": 0.0013,
+        "max": 0.1015
+      }
+    },
+    "crypto_ms": {
+      "label": "AES-256-GCM auth + decryption",
+      "stats": {
+        "n": 1000,
+        "mean": 1.7082,
+        "median": 1.6989,
+        "stdev": 0.2089,
+        "p95": 1.8719,
+        "p99": 1.9765,
+        "min": 0.8383,
+        "max": 4.7605
+      }
+    },
+    "persistence_ms": {
+      "label": "receive counter fsync to state file",
+      "stats": {
+        "n": 1000,
+        "mean": 20.0119,
+        "median": 14.2125,
+        "stdev": 16.583,
+        "p95": 30.5376,
+        "p99": 101.8685,
+        "min": 12.8339,
+        "max": 155.1944
+      }
+    },
+    "json_parse_ms": {
+      "label": "JSON parse + action identification",
+      "stats": {
+        "n": 1000,
+        "mean": 0.2955,
+        "median": 0.2956,
+        "stdev": 0.0248,
+        "p95": 0.336,
+        "p99": 0.3474,
+        "min": 0.1806,
+        "max": 0.416
+      }
+    },
+    "ack_set_ms": {
+      "label": "ack_char.value set (plaintext BLE char write)",
+      "stats": {
+        "n": 1000,
+        "mean": 0.4918,
+        "median": 0.491,
+        "stdev": 0.0489,
+        "p95": 0.5629,
+        "p99": 0.5907,
+        "min": 0.279,
+        "max": 1.0272
+      }
+    },
+    "gateway_total_ms": {
+      "label": "gateway total (T0 callback to T7 char.value set)",
+      "stats": {
+        "n": 1000,
+        "mean": 22.5402,
+        "median": 16.8113,
+        "stdev": 16.5719,
+        "p95": 33.2315,
+        "p99": 104.4857,
+        "min": 14.2085,
+        "max": 156.5604
+      }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "condition": "4m_los",
+  "description": "RPi on desk. Laptop 4 m away, direct line of sight, no obstacles between devices.",
+  "n_trials": 200,
+  "n_success": 200,
+  "success_rate": "100.0%",
+  "stages": {
+    "scan": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 864.221,
+        "median": 789.769,
+        "stdev": 755.039,
+        "p95": 2293.036,
+        "p99": 3407.861,
+        "min": 25.769,
+        "max": 3543.836
+      }
+    },
+    "connect": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 3753.16,
+        "median": 3376.885,
+        "stdev": 1384.435,
+        "p95": 6670.448,
+        "p99": 8370.934,
+        "min": 1965.166,
+        "max": 11558.358
+      }
+    },
+    "write": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 284.621,
+        "median": 286.147,
+        "stdev": 41.782,
+        "p95": 331.446,
+        "p99": 513.177,
+        "min": 218.789,
+        "max": 620.902
+      }
+    },
+    "ack": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 94.842,
+        "median": 90.129,
+        "stdev": 18.304,
+        "p95": 135.131,
+        "p99": 225.094,
+        "min": 87.262,
+        "max": 225.26
+      }
+    },
+    "total": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 5002.705,
+        "median": 4731.459,
+        "stdev": 1557.639,
+        "p95": 7859.438,
+        "p99": 10424.913,
+        "min": 2413.988,
+        "max": 12988.375
+      }
+    }
+  },
+  "failures_by_stage": {}
+}

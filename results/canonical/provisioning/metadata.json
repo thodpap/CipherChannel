@@ -1,0 +1,11 @@
+{
+  "experiment": "Provisioning Gate",
+  "git_commit": "4d67c9660da1a1094d68e6ece5037441678f2c01",
+  "git_clean": true,
+  "run_host": "laptop — fedora.home, 12th Gen Intel i7-12650H",
+  "python": "3.14.5",
+  "requires_hardware": false,
+  "requires_ble": false,
+  "notes": "Tests ProvisioningGate (physical-presence gated) and BenchmarkProvisioningGate in complete isolation from GPIO, BLE, and asyncio. GPIO provisioning requires RPi hardware — not testable on this host.",
+  "run_command": "python3.14 results/canonical/provisioning/run_provisioning.py"
+}

@@ -1,0 +1,170 @@
+{
+  "git_commit": "4d67c9660da1a1094d68e6ece5037441678f2c01",
+  "experiment_A_per_trial_reconnect": {
+    "description": "30 trials: scan \u2192 connect \u2192 key-exchange \u2192 write \u2192 ACK \u2192 disconnect per trial",
+    "n_trials": 30,
+    "success_rate": "30/30",
+    "phases": {
+      "scan": {
+        "n": 30,
+        "mean_ms": 1365.23,
+        "median_ms": 843.6,
+        "stdev_ms": 929.84,
+        "min_ms": 827.4,
+        "p95_ms": 3414.2,
+        "p99_ms": 3426.0,
+        "max_ms": 3426.0
+      },
+      "connect": {
+        "n": 30,
+        "mean_ms": 4618.35,
+        "median_ms": 4428.5,
+        "stdev_ms": 1965.09,
+        "min_ms": 3110.0,
+        "p95_ms": 9601.7,
+        "p99_ms": 10839.5,
+        "max_ms": 10839.5
+      },
+      "key_exchange": {
+        "n": 30,
+        "mean_ms": 457.08,
+        "median_ms": 444.55,
+        "stdev_ms": 72.98,
+        "min_ms": 398.6,
+        "p95_ms": 579.3,
+        "p99_ms": 726.2,
+        "max_ms": 726.2
+      },
+      "write": {
+        "n": 30,
+        "mean_ms": 90.28,
+        "median_ms": 89.25,
+        "stdev_ms": 8.64,
+        "min_ms": 79.6,
+        "p95_ms": 90.9,
+        "p99_ms": 134.9,
+        "max_ms": 134.9
+      },
+      "ack": {
+        "n": 30,
+        "mean_ms": 90.53,
+        "median_ms": 90.35,
+        "stdev_ms": 0.58,
+        "min_ms": 89.2,
+        "p95_ms": 91.2,
+        "p99_ms": 91.4,
+        "max_ms": 91.4
+      },
+      "total": {
+        "n": 30,
+        "mean_ms": 8945.43,
+        "median_ms": 7988.1,
+        "stdev_ms": 2391.55,
+        "min_ms": 6996.6,
+        "p95_ms": 15008.7,
+        "p99_ms": 15009.5,
+        "max_ms": 15009.5
+      }
+    }
+  },
+  "experiment_B_steady_state": {
+    "description": "Connect once + key-exchange once; 100 write/ACK cycles on persisted channel",
+    "n_trials": 100,
+    "success_rate": "100/100",
+    "setup_one_time_ms": {
+      "scan_ms": 756.3,
+      "connect_ms": 4519.7,
+      "kex_ms": 408.8
+    },
+    "phases": {
+      "write": {
+        "n": 100,
+        "mean_ms": 81.04,
+        "median_ms": 79.25,
+        "stdev_ms": 8.85,
+        "min_ms": 77.1,
+        "p95_ms": 81.1,
+        "p99_ms": 124.4,
+        "max_ms": 124.4
+      },
+      "ack": {
+        "n": 100,
+        "mean_ms": 91.47,
+        "median_ms": 90.1,
+        "stdev_ms": 7.63,
+        "min_ms": 88.8,
+        "p95_ms": 91.4,
+        "p99_ms": 134.8,
+        "max_ms": 134.8
+      },
+      "total": {
+        "n": 100,
+        "mean_ms": 172.77,
+        "median_ms": 169.6,
+        "stdev_ms": 11.55,
+        "min_ms": 167.7,
+        "p95_ms": 214.3,
+        "p99_ms": 215.6,
+        "max_ms": 215.6
+      }
+    }
+  },
+  "experiment_C_key_once": {
+    "description": "Key-exchange on trial 1 only; scan+connect+write+ACK for all 30 trials",
+    "n_trials": 30,
+    "success_rate": "30/30",
+    "kex_trial_1_only_ms": 767.3,
+    "phases": {
+      "scan": {
+        "n": 30,
+        "mean_ms": 1466.92,
+        "median_ms": 842.15,
+        "stdev_ms": 1216.48,
+        "min_ms": 343.8,
+        "p95_ms": 3410.4,
+        "p99_ms": 5971.0,
+        "max_ms": 5971.0
+      },
+      "connect": {
+        "n": 30,
+        "mean_ms": 4196.11,
+        "median_ms": 3197.15,
+        "stdev_ms": 2001.72,
+        "min_ms": 3121.9,
+        "p95_ms": 9583.6,
+        "p99_ms": 12144.0,
+        "max_ms": 12144.0
+      },
+      "write": {
+        "n": 30,
+        "mean_ms": 280.42,
+        "median_ms": 262.95,
+        "stdev_ms": 63.33,
+        "min_ms": 82.4,
+        "p95_ms": 309.1,
+        "p99_ms": 532.5,
+        "max_ms": 532.5
+      },
+      "ack": {
+        "n": 30,
+        "mean_ms": 96.37,
+        "median_ms": 90.15,
+        "stdev_ms": 19.51,
+        "min_ms": 89.2,
+        "p95_ms": 135.0,
+        "p99_ms": 180.5,
+        "max_ms": 180.5
+      },
+      "total": {
+        "n": 30,
+        "mean_ms": 8460.4,
+        "median_ms": 7471.8,
+        "stdev_ms": 2491.31,
+        "min_ms": 6997.5,
+        "p95_ms": 13027.7,
+        "p99_ms": 18021.7,
+        "max_ms": 18021.7
+      }
+    }
+  }
+}

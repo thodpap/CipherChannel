@@ -113,6 +113,10 @@ void BLEProtocol::checkConnect() {
 }
 
 void BLEProtocol::transmitMessage(const char* message) {
+    if (needSecureKey) {
+        Serial.println("[BLE] Skipping transmit: secure key not yet provisioned");
+        return;
+    }
     if (connected && message != nullptr) {
         uint8_t ciphertext[CC_MAX_PACKET_LEN];
         size_t ciphertextLen = sizeof(ciphertext);
@@ -349,6 +353,7 @@ void BLEProtocol::setSecureKey(const unsigned char *_key, size_t keyLength) {
     // next STOP_SHARING (counter N+2) is strictly greater than the REQUEST_KEY
     // counter (N) the server already accepted.  Resetting to zero causes the
     // STOP_SHARING to arrive with nonce=2, which the server treats as a replay.
+    needSecureKey = false;  // provisioning complete — allow transmitMessage()
     Serial.println("Secure channel key updated.");
 }
 

@@ -1,0 +1,7 @@
+{
+  "condition": "7m_wall",
+  "description": "RPi in one room. Laptop 7 m away in adjacent room, one standard interior wall between devices.",
+  "address": "B8:27:EB:07:01:22",
+  "n_trials": 200,
+  "date": "2026-06-15"
+}

@@ -1,0 +1,85 @@
+{
+  "condition": "7m_wall",
+  "description": "RPi in one room. Laptop 7 m away in adjacent room, one standard interior wall between devices.",
+  "n_trials": 200,
+  "n_success": 200,
+  "success_rate": "100.0%",
+  "stages": {
+    "scan": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 990.066,
+        "median": 752.505,
+        "stdev": 1019.611,
+        "p95": 3152.816,
+        "p99": 5611.885,
+        "min": 43.56,
+        "max": 6957.666
+      }
+    },
+    "connect": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 4180.49,
+        "median": 3392.329,
+        "stdev": 1941.797,
+        "p95": 8673.014,
+        "p99": 12018.47,
+        "min": 2082.385,
+        "max": 12729.685
+      }
+    },
+    "write": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 290.874,
+        "median": 295.212,
+        "stdev": 44.257,
+        "p95": 348.923,
+        "p99": 512.764,
+        "min": 229.345,
+        "max": 572.568
+      }
+    },
+    "ack": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 95.344,
+        "median": 90.144,
+        "stdev": 18.682,
+        "p95": 135.072,
+        "p99": 224.751,
+        "min": 88.542,
+        "max": 225.023
+      }
+    },
+    "total": {
+      "attempted": 200,
+      "success": 200,
+      "rate": "100.0%",
+      "latency_ms": {
+        "n": 200,
+        "mean": 5561.207,
+        "median": 4798.544,
+        "stdev": 2359.097,
+        "p95": 11008.426,
+        "p99": 13843.253,
+        "min": 2504.779,
+        "max": 16138.937
+      }
+    }
+  },
+  "failures_by_stage": {}
+}

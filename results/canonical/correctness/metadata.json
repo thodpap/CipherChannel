@@ -1,0 +1,18 @@
+{
+  "experiment": "A — Protocol Correctness",
+  "description": "Deterministic unit-level correctness tests for CipherChannel. Covers packet-length invariants, counter serialisation and exhaustion, direction parity, malformed-input rejection, and the protocol test vector.",
+  "git_commit": "4d67c9660da1a1094d68e6ece5037441678f2c01",
+  "git_clean": true,
+  "run_host": "laptop — fedora.home, 12th Gen Intel i7-12650H, Fedora Linux 7.0.11-200.fc44.x86_64",
+  "python": "3.14.5",
+  "pycryptodome": "3.23.0",
+  "requires_hardware": false,
+  "requires_ble": false,
+  "run_command": "python3.14 results/canonical/correctness/run_correctness.py",
+  "subsections": [
+    "A1 — Packet-length invariants (plaintext sizes: 0,1,15,16,17,31,32,63,64,127,128,399,400, oversized send, oversized receive)",
+    "A2 — Counter behaviour (first nonces, parity, LE serialisation, boundary values, exhaustion, missed packets)",
+    "A3 — Malformed-input rejection (empty, short, oversized, tampered, bad version, corrupt state, endpoint mismatch)",
+    "A4 — Protocol test vector (PROTOCOL.md §15, zero key, pt=b'test')"
+  ]
+}

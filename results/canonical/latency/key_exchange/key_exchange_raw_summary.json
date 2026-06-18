@@ -1,0 +1,79 @@
+{
+  "n_trials": 235,
+  "n_success": 235,
+  "n_failure": 0,
+  "success_rate": "100.0%",
+  "note": "Physical button latency excluded (BenchmarkProvisioningGate). server_process_ms \u2248 server crypto + BLE char write latency; poll resolution = 20 ms.",
+  "phases": {
+    "scan_ms": {
+      "n": 235,
+      "mean": 988.1,
+      "median": 767.817,
+      "stdev": 751.349,
+      "p95": 2503.322,
+      "p99": 3555.553,
+      "min": 18.44,
+      "max": 3930.129
+    },
+    "connect_ms": {
+      "n": 235,
+      "mean": 3442.132,
+      "median": 2736.232,
+      "stdev": 1144.09,
+      "p95": 5921.557,
+      "p99": 6690.141,
+      "min": 1948.71,
+      "max": 8027.061
+    },
+    "request_write_ms": {
+      "n": 235,
+      "mean": 365.694,
+      "median": 352.68,
+      "stdev": 94.635,
+      "p95": 488.298,
+      "p99": 892.982,
+      "min": 262.573,
+      "max": 984.163
+    },
+    "server_process_ms": {
+      "n": 235,
+      "mean": 91.617,
+      "median": 90.895,
+      "stdev": 6.501,
+      "p95": 92.196,
+      "p99": 135.225,
+      "min": 87.316,
+      "max": 136.036
+    },
+    "decrypt_ms": {
+      "n": 235,
+      "mean": 0.275,
+      "median": 0.259,
+      "stdev": 0.427,
+      "p95": 0.336,
+      "p99": 0.501,
+      "min": 0.179,
+      "max": 6.741
+    },
+    "state_init_ms": {
+      "n": 235,
+      "mean": 0.03,
+      "median": 0.021,
+      "stdev": 0.025,
+      "p95": 0.051,
+      "p99": 0.18,
+      "min": 0.014,
+      "max": 0.225
+    },
+    "kex_total_ms": {
+      "n": 235,
+      "mean": 457.627,
+      "median": 443.507,
+      "stdev": 94.951,
+      "p95": 578.667,
+      "p99": 983.299,
+      "min": 353.774,
+      "max": 1075.419
+    }
+  }
+}

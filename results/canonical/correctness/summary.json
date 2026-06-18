@@ -1,0 +1,431 @@
+{
+  "experiment": "A \u2014 Protocol Correctness",
+  "git_commit": "4d67c9660da1a1094d68e6ece5037441678f2c01",
+  "protocol_version": 1,
+  "state_format_version": 1,
+  "max_plaintext_size": 400,
+  "max_packet_size": 428,
+  "total": 52,
+  "passed": 52,
+  "failed": 0,
+  "elapsed_ms": 15.0,
+  "results": [
+    {
+      "test_id": "A1.000",
+      "description": "plaintext_size=0",
+      "expected": "pkt=28 nonce=12 ct=0 tag=16 recv=ok",
+      "actual": "pkt=28 nonce=12 ct=0 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.001",
+      "description": "plaintext_size=1",
+      "expected": "pkt=29 nonce=12 ct=1 tag=16 recv=ok",
+      "actual": "pkt=29 nonce=12 ct=1 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.015",
+      "description": "plaintext_size=15",
+      "expected": "pkt=43 nonce=12 ct=15 tag=16 recv=ok",
+      "actual": "pkt=43 nonce=12 ct=15 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.016",
+      "description": "plaintext_size=16",
+      "expected": "pkt=44 nonce=12 ct=16 tag=16 recv=ok",
+      "actual": "pkt=44 nonce=12 ct=16 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.017",
+      "description": "plaintext_size=17",
+      "expected": "pkt=45 nonce=12 ct=17 tag=16 recv=ok",
+      "actual": "pkt=45 nonce=12 ct=17 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.031",
+      "description": "plaintext_size=31",
+      "expected": "pkt=59 nonce=12 ct=31 tag=16 recv=ok",
+      "actual": "pkt=59 nonce=12 ct=31 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.032",
+      "description": "plaintext_size=32",
+      "expected": "pkt=60 nonce=12 ct=32 tag=16 recv=ok",
+      "actual": "pkt=60 nonce=12 ct=32 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.063",
+      "description": "plaintext_size=63",
+      "expected": "pkt=91 nonce=12 ct=63 tag=16 recv=ok",
+      "actual": "pkt=91 nonce=12 ct=63 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.064",
+      "description": "plaintext_size=64",
+      "expected": "pkt=92 nonce=12 ct=64 tag=16 recv=ok",
+      "actual": "pkt=92 nonce=12 ct=64 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.127",
+      "description": "plaintext_size=127",
+      "expected": "pkt=155 nonce=12 ct=127 tag=16 recv=ok",
+      "actual": "pkt=155 nonce=12 ct=127 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.128",
+      "description": "plaintext_size=128",
+      "expected": "pkt=156 nonce=12 ct=128 tag=16 recv=ok",
+      "actual": "pkt=156 nonce=12 ct=128 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.399",
+      "description": "plaintext_size=399",
+      "expected": "pkt=427 nonce=12 ct=399 tag=16 recv=ok",
+      "actual": "pkt=427 nonce=12 ct=399 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.400",
+      "description": "plaintext_size=400",
+      "expected": "pkt=428 nonce=12 ct=400 tag=16 recv=ok",
+      "actual": "pkt=428 nonce=12 ct=400 tag=16 recv=ok",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.over",
+      "description": "plaintext_size=MAX+1=401",
+      "expected": "ChannelException",
+      "actual": "ChannelException",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A1.rxover",
+      "description": "receive packet len=429 > MAX_PACKET_SIZE",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.first_ini",
+      "description": "first initiator send nonce=2",
+      "expected": "2",
+      "actual": "2",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.first_res",
+      "description": "first responder send nonce=3",
+      "expected": "3",
+      "actual": "3",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.incr2",
+      "description": "initiator nonce increments by 2 each send",
+      "expected": "diffs=[2,2,2,2]",
+      "actual": "diffs=[2, 2, 2, 2]",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.parity_ini",
+      "description": "initiator nonces all even",
+      "expected": "all even",
+      "actual": "parities=[0, 0, 0, 0, 0]",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.parity_res",
+      "description": "responder nonces all odd",
+      "expected": "all odd",
+      "actual": "parities=[1, 1, 1, 1, 1]",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.le12",
+      "description": "counter=2 serialises to 12-byte LE (02 + 11 zeros)",
+      "expected": "020000000000000000000000",
+      "actual": "020000000000000000000000",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.strict_cmp",
+      "description": "replay rejected (same counter, strict >)",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.rewind",
+      "description": "older packet after newer accepted \u2192 rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0xff",
+      "description": "counter=0xff 12B LE round-trip",
+      "expected": "len=12 val=0xff",
+      "actual": "len=12 val=0xff",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0x100",
+      "description": "counter=0x100 12B LE round-trip",
+      "expected": "len=12 val=0x100",
+      "actual": "len=12 val=0x100",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0xffff",
+      "description": "counter=0xffff 12B LE round-trip",
+      "expected": "len=12 val=0xffff",
+      "actual": "len=12 val=0xffff",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0x10000",
+      "description": "counter=0x10000 12B LE round-trip",
+      "expected": "len=12 val=0x10000",
+      "actual": "len=12 val=0x10000",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0xffffffff",
+      "description": "counter=0xffffffff 12B LE round-trip",
+      "expected": "len=12 val=0xffffffff",
+      "actual": "len=12 val=0xffffffff",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0x100000000",
+      "description": "counter=0x100000000 12B LE round-trip",
+      "expected": "len=12 val=0x100000000",
+      "actual": "len=12 val=0x100000000",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0xffffffffffffffff",
+      "description": "counter=0xffffffffffffffff 12B LE round-trip",
+      "expected": "len=12 val=0xffffffffffffffff",
+      "actual": "len=12 val=0xffffffffffffffff",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.ser.0x10000000000000000",
+      "description": "counter=0x10000000000000000 12B LE round-trip",
+      "expected": "len=12 val=0x10000000000000000",
+      "actual": "len=12 val=0x10000000000000000",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.exhaust",
+      "description": "counter exhaustion at 2^96 raises ChannelException",
+      "expected": "ChannelException",
+      "actual": "ChannelException",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.exhaust_nonce",
+      "description": "penultimate nonce = 2^96-2 = 0xfffffffffffffffffffffffe",
+      "expected": "0xfffffffffffffffffffffffe",
+      "actual": "0xfffffffffffffffffffffffe",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.skip_ok",
+      "description": "higher valid counter accepted after skip (nonce=6 after seqRecv=1)",
+      "expected": "msg2",
+      "actual": "b'msg2'",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.skip_stale",
+      "description": "lower counter after skip rejected (nonce=4 after seqRecv=6)",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A2.skip_next",
+      "description": "next valid counter accepted after skip (nonce=8)",
+      "expected": "msg3",
+      "actual": "b'msg3'",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.empty",
+      "description": "empty packet rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.short_nonce",
+      "description": "packet with 10-byte nonce (< 28B total) rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.short27",
+      "description": "27-byte packet (one short of minimum) rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.min28",
+      "description": "28-byte packet (empty plaintext) accepted",
+      "expected": "b''",
+      "actual": "b''",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.no_tag",
+      "description": "packet with truncated/missing tag rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.trunc_ct",
+      "description": "packet with truncated ciphertext rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.oversized",
+      "description": "packet > MAX_PACKET_SIZE=428 rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.bad_pv",
+      "description": "incompatible protocol version raises ChannelException",
+      "expected": "ChannelException",
+      "actual": "ChannelException",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.corrupt",
+      "description": "corrupted state file raises ChannelException",
+      "expected": "ChannelException",
+      "actual": "ChannelException",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.eid_mismatch",
+      "description": "endpoint_id mismatch raises ChannelException",
+      "expected": "ChannelException",
+      "actual": "ChannelException",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.tamper_ct",
+      "description": "tampered ciphertext byte \u2192 None (GCM auth failure)",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.tamper_tag",
+      "description": "tampered GCM tag byte \u2192 None",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A3.tamper_nonce",
+      "description": "tampered nonce (parity flip) \u2192 None",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A4.vec_pkt",
+      "description": "zero-key initiator pt=b\"test\" \u2192 exact test vector packet",
+      "expected": "020000000000000000000000bb3af9b4d81a74113b0c7c232afe5b00cac5095a",
+      "actual": "020000000000000000000000bb3af9b4d81a74113b0c7c232afe5b00cac5095a",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A4.vec_recv",
+      "description": "responder decrypts test vector \u2192 b\"test\"",
+      "expected": "b'test'",
+      "actual": "b'test'",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "A4.vec_replay",
+      "description": "test vector replay rejected",
+      "expected": "None",
+      "actual": "None",
+      "pass": true,
+      "note": ""
+    }
+  ],
+  "failed_tests": []
+}

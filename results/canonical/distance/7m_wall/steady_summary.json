@@ -1,0 +1,46 @@
+{
+  "condition": "7m_wall",
+  "description": "RPi in one room. Laptop 7 m away in adjacent room, one standard interior wall between devices.",
+  "mode": "persistent_connection",
+  "n_trials": 500,
+  "n_success": 500,
+  "success_rate": "100.0%",
+  "disconnected": false,
+  "setup": {
+    "scan_ms": 241.679,
+    "connect_ms": 2593.201,
+    "kex_ms": 539.329
+  },
+  "latency_ms": {
+    "write_ms": {
+      "n": 500,
+      "mean": 87.117,
+      "median": 79.243,
+      "stdev": 20.611,
+      "p95": 124.406,
+      "p99": 169.327,
+      "min": 76.256,
+      "max": 259.433
+    },
+    "ack_wait_ms": {
+      "n": 500,
+      "mean": 94.866,
+      "median": 90.118,
+      "stdev": 15.252,
+      "p95": 135.093,
+      "p99": 179.931,
+      "min": 88.243,
+      "max": 180.325
+    },
+    "total_ms": {
+      "n": 500,
+      "mean": 181.998,
+      "median": 169.38,
+      "stdev": 25.91,
+      "p95": 215.103,
+      "p99": 259.83,
+      "min": 166.334,
+      "max": 350.485
+    }
+  }
+}

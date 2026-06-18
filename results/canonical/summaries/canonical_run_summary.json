@@ -1,0 +1,175 @@
+{
+  "title": "CipherChannel — Canonical Experimental Evaluation",
+  "generated_at": "2026-06-14",
+  "git_commit": "4d67c9660da1a1094d68e6ece5037441678f2c01",
+  "git_clean": true,
+  "run_host": "Laptop — fedora.home, 12th Gen Intel i7-12650H, Fedora Linux 7.0.11-200.fc44.x86_64",
+  "python": "3.14.5",
+  "pycryptodome": "3.23.0",
+  "bleak": "3.0.2 (client/.venv)",
+  "bless_rpi": "0.3.0 (server/.venv on RPi)",
+  "bluez": "5.86",
+  "rpi_address": "B8:27:EB:07:01:22",
+
+  "experiments": {
+    "A_protocol_correctness": {
+      "status": "COMPLETE",
+      "total": 52,
+      "passed": 52,
+      "failed": 0,
+      "elapsed_ms": 16.9,
+      "summary": "52/52 PASS. All packet-length invariants, counter behaviour boundary cases, malformed-input rejection, and the protocol test vector pass."
+    },
+    "B_interoperability": {
+      "status": "PARTIAL — Python only",
+      "implementations_tested": ["Python/PyCryptodome 3.23.0"],
+      "implementations_blocked": [
+        "ESP32/mbedTLS — device not connected during this run",
+        "C/OpenSSL — no C implementation in codebase"
+      ],
+      "test_results": 16,
+      "passed": 16,
+      "failed": 0,
+      "packet_rows": 620,
+      "elapsed_ms": 67.6,
+      "summary": "16/16 PASS (620 round-trip packets across 6 payload sizes; attack matrix 8/8 rejected). ESP32 and C interoperability blocked."
+    },
+    "C_adversarial": {
+      "status": "PARTIAL — C4 blocked",
+      "sections": {
+        "C1_local":  {"status": "PASS", "attempts": 100, "accepted": 0, "rejected": 100, "unexpected": 0},
+        "C1_ble":    {"status": "PASS", "attempts": 30,  "accepted": 0, "rejected": 30,  "unexpected": 0},
+        "C2":        {"status": "PASS", "attempts": 30,  "accepted": 0, "rejected": 30,  "unexpected": 0,
+                      "mechanism": "server _phone_channel persists across BLE disconnects; seqRecv not reset on reconnect"},
+        "C3":        {"status": "PASS", "attempts": 30,  "accepted": 0, "rejected": 30,  "unexpected": 0,
+                      "note": "simulated via state-file reload (30 trials)"},
+        "C4":        {"status": "BLOCKED", "blocker": "requires physical RPi power cycle"},
+        "C5":        {"status": "PASS", "attempts": 120, "accepted": 0, "rejected": 120, "unexpected": 0,
+                      "note": "6 sites × 20 random payloads"},
+        "C6":        {"status": "PASS", "attempts": 4,   "accepted": 0, "rejected": 4,   "unexpected": 0},
+        "C7":        {"status": "PASS", "attempts": 100, "accepted": 0, "rejected": 100, "unexpected": 0},
+        "C8":        {"status": "PASS", "attempts": 120, "accepted": 90, "rejected": 30, "unexpected": 0,
+                      "note": "90 legitimate (pkts 2,6,8 per trial); 30 correctly stale (pkt 4 after 6)"}
+      },
+      "total_adversarial_attempts": 534,
+      "unexpected_acceptance_events": 0,
+      "server_side_rejection_log_entries": 90,
+      "summary": "8/8 runnable PASS; C4 blocked. 534 adversarial attempts: 0 unexpected acceptances."
+    },
+    "provisioning": {
+      "status": "COMPLETE (state machine; GPIO not testable on laptop)",
+      "total": 28,
+      "passed": 28,
+      "failed": 0,
+      "elapsed_ms": 42.2,
+      "summary": "28/28 PASS. ProvisioningGate (22 tests) and BenchmarkProvisioningGate (6 tests) fully verified."
+    },
+    "latency": {
+      "status": "COMPLETE",
+      "rpi_address": "B8:27:EB:07:01:22",
+      "experiments": {
+        "A_per_trial_reconnect": {
+          "n_trials": 30,
+          "success_rate": "30/30",
+          "phases_ms": {
+            "scan":         {"mean": 1365.23, "median": 843.6,  "p95": 3414.2,  "max": 3426.0},
+            "connect":      {"mean": 4618.35, "median": 4428.5, "p95": 9601.7,  "max": 10839.5},
+            "key_exchange": {"mean": 457.08,  "median": 444.55, "p95": 579.3,   "max": 726.2},
+            "write":        {"mean": 90.28,   "median": 89.25,  "p95": 90.9,    "max": 134.9},
+            "ack":          {"mean": 90.53,   "median": 90.35,  "p95": 91.2,    "max": 91.4},
+            "total":        {"mean": 8945.43, "median": 7988.1, "p95": 15008.7, "max": 15009.5}
+          }
+        },
+        "B_steady_state": {
+          "n_trials": 100,
+          "success_rate": "100/100",
+          "setup_one_time_ms": {"scan": 756.3, "connect": 4519.7, "kex": 408.8},
+          "phases_ms": {
+            "write": {"mean": 81.04,  "median": 79.25, "p95": 81.1,  "max": 124.4},
+            "ack":   {"mean": 91.47,  "median": 90.1,  "p95": 91.4,  "max": 134.8},
+            "total": {"mean": 172.77, "median": 169.6, "p95": 214.3, "max": 215.6}
+          }
+        },
+        "C_key_once": {
+          "n_trials": 30,
+          "success_rate": "30/30",
+          "kex_trial_1_only_ms": 767.3,
+          "phases_ms": {
+            "scan":    {"mean": 1466.92, "median": 842.15, "p95": 3410.4, "max": 5971.0},
+            "connect": {"mean": 4196.11, "median": 3197.15,"p95": 9583.6, "max": 12144.0},
+            "write":   {"mean": 280.42,  "median": 262.95, "p95": 309.1,  "max": 532.5},
+            "ack":     {"mean": 96.37,   "median": 90.15,  "p95": 135.0,  "max": 180.5},
+            "total":   {"mean": 8460.4,  "median": 7471.8, "p95": 13027.7,"max": 18021.7}
+          }
+        }
+      },
+      "raw_files": [
+        "results/canonical/latency/latency_reconnect_raw.csv",
+        "results/canonical/latency/latency_steadystate_raw.csv",
+        "results/canonical/latency/latency_keyonce_raw.csv",
+        "results/canonical/latency/latency_server_raw.csv",
+        "results/canonical/latency/latency_summary.json"
+      ]
+    },
+    "concurrency": {
+      "status": "COMPLETE",
+      "description": "Endpoint isolation: K_phone and K_cane are cryptographically independent",
+      "D1_cane_kex": "PASS",
+      "D2_phone_kex": "PASS",
+      "D3_cross_injection": {
+        "phone_to_cane_attempts": 30,
+        "cane_to_phone_attempts": 30,
+        "total": 60,
+        "rejected": 60,
+        "unexpected_accepted": 0,
+        "mechanism": "AES-GCM authentication tag failure (not counter-check)",
+        "result": "PASS"
+      },
+      "D4_sanity": {"ok": 2, "failed": 0, "result": "PASS"},
+      "elapsed_ms": 54022,
+      "raw_files": [
+        "results/canonical/concurrency/concurrent_endpoints_raw.csv",
+        "results/canonical/concurrency/concurrent_endpoints_summary.json"
+      ]
+    },
+    "distance": {
+      "status": "BLOCKED",
+      "blocker": "Requires physical BLE range measurement"
+    },
+    "resources": {
+      "status": "BLOCKED",
+      "blocker": "CPU/RAM profiling on RPi requires RPi hardware"
+    },
+    "soak": {
+      "status": "BLOCKED",
+      "blocker": "Long-running BLE soak test requires RPi + ESP32 hardware"
+    }
+  },
+
+  "totals": {
+    "correctness_and_provisioning_tests": 96,
+    "adversarial_attempts_total": 534,
+    "cross_endpoint_injection_attempts": 60,
+    "unexpected_acceptance_events": 0,
+    "latency_trials": 160,
+    "blocked_experiments": ["distance", "resources", "soak", "B-ESP32", "B-C", "C4"]
+  },
+
+  "hardware_blockers": [
+    {
+      "blocker": "RPi power cycle not performed",
+      "affected": ["C4"],
+      "mitigation": "Not mitigated — requires physical intervention."
+    },
+    {
+      "blocker": "ESP32 not connected",
+      "affected": ["B (ESP32/mbedTLS)", "soak"],
+      "mitigation": "None for this run."
+    },
+    {
+      "blocker": "C/OpenSSL implementation not in codebase",
+      "affected": ["B (C/OpenSSL)"],
+      "mitigation": "N/A"
+    }
+  ]
+}

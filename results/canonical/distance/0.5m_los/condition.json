@@ -1,0 +1,7 @@
+{
+  "condition": "0.5m_los",
+  "description": "RPi on desk. Laptop 0.5 m away, direct line of sight, no obstacles between devices.",
+  "address": "B8:27:EB:07:01:22",
+  "n_trials": 200,
+  "date": "2026-06-14"
+}

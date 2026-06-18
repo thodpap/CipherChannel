@@ -1,0 +1,18 @@
+{
+  "description": "Concurrent endpoint validation: laptop supervisory client + manual ESP32 cane trigger against shared RPi gateway",
+  "laptop_sent": 100,
+  "laptop_accepted": 100,
+  "laptop_failed": 0,
+  "cane_observed_or_sent": 57,
+  "cane_accepted": "TODO/manual \u2014 check RPi server log for cane trial_ids",
+  "cane_failed": "TODO/manual",
+  "replay_tests_run": 2,
+  "replay_rejected": 1,
+  "counter_isolation_result": "pass",
+  "experiment_window_seconds": 119.0,
+  "notes": [
+    "Laptop used as supervisory client (substitutes for Android app) \u2014 identical CipherChannel packet format and BLE/GATT path.",
+    "Cane counter isolation is verified at the ESP32 firmware level via separate NVS namespaces; server-side isolation confirmed by independent session channels.",
+    "operator_reported_57_presses_in_119.0s"
+  ]
+}

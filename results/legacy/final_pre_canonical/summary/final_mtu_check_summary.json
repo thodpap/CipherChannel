@@ -1,0 +1,13 @@
+{
+  "description": "MTU / long-write confirmation (laptop \u2192 RPi via BlueZ/Bleak)",
+  "target": "B8:27:EB:07:01:22",
+  "negotiated_mtu": 23,
+  "mtu_observation": "exposed_by_backend",
+  "probe_sizes_bytes": [1, 8, 16, 20, 32, 50, 64, 100, 128, 200, 256, 400, 512],
+  "successes_bytes": [1, 8, 16, 20, 32, 50, 64, 100, 128, 200, 256, 400],
+  "failures_bytes": [512],
+  "max_successful_plaintext_bytes": 400,
+  "max_successful_encrypted_bytes": 448,
+  "above_default_att_mtu_all_ok": false,
+  "note": "Some large packets failed \u2014 see failures_bytes."
+}

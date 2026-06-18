@@ -1,0 +1,22 @@
+{
+  "git_commit": "4d67c9660da1a1094d68e6ece5037441678f2c01",
+  "rpi_address": "B8:27:EB:07:01:22",
+  "n_inject_per_direction": 30,
+  "D1_cane_kex": "PASS",
+  "D2_phone_kex": "PASS",
+  "D3_cross_injection": {
+    "total_attempts": 60,
+    "phone_to_cane_attempts": 30,
+    "cane_to_phone_attempts": 30,
+    "rejected": 60,
+    "unexpected_accepted": 0,
+    "result": "PASS"
+  },
+  "D4_sanity": {
+    "ok": 2,
+    "failed": 0,
+    "result": "PASS"
+  },
+  "elapsed_ms": 54022.2,
+  "overall_result": "PASS"
+}

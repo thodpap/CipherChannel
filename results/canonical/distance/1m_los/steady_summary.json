@@ -1,0 +1,46 @@
+{
+  "condition": "1m_los",
+  "description": "RPi on desk. Laptop 1 m away, direct line of sight.",
+  "mode": "persistent_connection",
+  "n_trials": 500,
+  "n_success": 500,
+  "success_rate": "100.0%",
+  "disconnected": false,
+  "setup": {
+    "scan_ms": 656.691,
+    "connect_ms": 3418.878,
+    "kex_ms": 811.755
+  },
+  "latency_ms": {
+    "write_ms": {
+      "n": 500,
+      "mean": 80.078,
+      "median": 79.212,
+      "stdev": 6.923,
+      "p95": 80.119,
+      "p99": 124.303,
+      "min": 76.398,
+      "max": 168.092
+    },
+    "ack_wait_ms": {
+      "n": 500,
+      "mean": 90.665,
+      "median": 90.103,
+      "stdev": 4.917,
+      "p95": 91.144,
+      "p99": 134.914,
+      "min": 87.313,
+      "max": 135.632
+    },
+    "total_ms": {
+      "n": 500,
+      "mean": 170.757,
+      "median": 169.315,
+      "stdev": 8.402,
+      "p95": 170.298,
+      "p99": 214.332,
+      "min": 166.819,
+      "max": 258.082
+    }
+  }
+}

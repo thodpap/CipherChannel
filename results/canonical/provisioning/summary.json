@@ -1,0 +1,235 @@
+{
+  "experiment": "Provisioning Gate",
+  "git_commit": "4d67c9660da1a1094d68e6ece5037441678f2c01",
+  "total": 28,
+  "passed": 28,
+  "failed": 0,
+  "elapsed_ms": 41.8,
+  "results": [
+    {
+      "test_id": "P01",
+      "description": "closed gate rejects phone",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P02",
+      "description": "closed gate rejects cane",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P03",
+      "description": "active window allows correct endpoint",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P04a",
+      "description": "active window rejects wrong endpoint (cane)",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P04b",
+      "description": "active window still allows correct (phone)",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P05a",
+      "description": "one-shot: first request accepted",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P05b",
+      "description": "one-shot: second request in same window rejected",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P06",
+      "description": "window closed after successful provision",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P07",
+      "description": "expired window rejects provision",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P08",
+      "description": "is_open False on default (closed)",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P09",
+      "description": "is_open True after open()",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P10",
+      "description": "is_open False after close()",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P11",
+      "description": "is_open False after timeout",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P12",
+      "description": "close() simulates disconnect \u2192 reject",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P13",
+      "description": "close() simulates STOP_SHARING \u2192 reject",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P14",
+      "description": "close() simulates server shutdown \u2192 reject",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P15",
+      "description": "close() on closed gate is no-op (no exception)",
+      "expected": "no-exception",
+      "actual": "no-exception",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P16",
+      "description": "re-open after successful provision works",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P17a",
+      "description": "cane gate still closed while phone gate open",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P17b",
+      "description": "phone gate independent of cane gate",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P18",
+      "description": "concurrent try_provision: exactly one wins",
+      "expected": "1",
+      "actual": "1",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "P19",
+      "description": "REQUEST_KEY while CLOSED \u2192 False (no key material)",
+      "expected": "False",
+      "actual": "False",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "B01",
+      "description": "always allows 'phone'",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "B02",
+      "description": "always allows 'cane'",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "B03",
+      "description": "allows multiple times (not one-shot)",
+      "expected": "all True",
+      "actual": "[True, True, True]\u2026",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "B04",
+      "description": "open() is no-op",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "B05",
+      "description": "close() does not block provisioning",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test_id": "B06",
+      "description": "close() after provision: still allows next provision",
+      "expected": "True",
+      "actual": "True",
+      "pass": true,
+      "note": ""
+    }
+  ],
+  "failed_tests": []
+}
