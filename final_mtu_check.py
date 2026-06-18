@@ -23,7 +23,6 @@ import argparse
 import asyncio
 import csv
 import json
-import math
 import os
 import sys
 import time
@@ -48,8 +47,8 @@ KEY: bytes = b'*\xc3,6s\xa4\xa2\xeeI\x08S>\xd0\xff%\x84\xba\xe9\x95\xcaNL\xffzL%
 # Plaintext sizes to probe
 PROBE_SIZES = [1, 8, 16, 20, 32, 50, 64, 100, 128, 200, 256, 400, 512]
 
-# Encrypted 32-byte key = nonce(16) + PKCS7-padded(48) + tag(16) = 80 bytes
-_ENCRYPTED_KEY_LEN = 80
+# Encrypted 32-byte key = nonce(12) + ciphertext(32) + tag(16) = 60 bytes
+_ENCRYPTED_KEY_LEN = 60
 _KEY_POLL_INTERVAL = 0.1
 _KEY_TIMEOUT       = 10.0
 _ACK_POLL_INTERVAL = 0.05
@@ -60,9 +59,7 @@ DEFAULT_OUT = os.path.join(os.path.dirname(__file__), 'results', 'final')
 
 def _encrypted_size(plaintext_len: int) -> int:
     """Wire-format packet size for a given plaintext length."""
-    block = 16
-    padded = plaintext_len + (block - plaintext_len % block)
-    return 16 + padded + 16   # nonce + ciphertext + tag
+    return 12 + plaintext_len + 16   # nonce(12) + ciphertext + tag(16)
 
 
 async def _key_exchange(client: BleakClient, session_id: str) -> bytes:

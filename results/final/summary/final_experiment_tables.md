@@ -26,23 +26,23 @@ Total: **13/13 passed** in 11 ms
 
 - Negotiated ATT MTU: **23**
 - All packets above 20-byte default ATT payload accepted: **No**
-- Max successful plaintext: **400 B**  →  encrypted: **448 B**
+- Max successful plaintext: **400 B**  →  encrypted: **428 B**
 
 | Plaintext (B) | Encrypted (B) | Above 20B ATT? | Result |
 |--------------|--------------|----------------|--------|
-| 1 | 48 | Yes | ✓ OK |
-| 8 | 48 | Yes | ✓ OK |
-| 16 | 64 | Yes | ✓ OK |
-| 20 | 64 | Yes | ✓ OK |
-| 32 | 80 | Yes | ✓ OK |
-| 50 | 96 | Yes | ✓ OK |
-| 64 | 112 | Yes | ✓ OK |
-| 100 | 144 | Yes | ✓ OK |
-| 128 | 176 | Yes | ✓ OK |
-| 200 | 240 | Yes | ✓ OK |
-| 256 | 304 | Yes | ✓ OK |
-| 400 | 448 | Yes | ✓ OK |
-| 512 | 560 | Yes | ✗ FAIL |
+| 1 | 29 | Yes | ✓ OK |
+| 8 | 36 | Yes | ✓ OK |
+| 16 | 44 | Yes | ✓ OK |
+| 20 | 48 | Yes | ✓ OK |
+| 32 | 60 | Yes | ✓ OK |
+| 50 | 78 | Yes | ✓ OK |
+| 64 | 92 | Yes | ✓ OK |
+| 100 | 128 | Yes | ✓ OK |
+| 128 | 156 | Yes | ✓ OK |
+| 200 | 228 | Yes | ✓ OK |
+| 256 | 284 | Yes | ✓ OK |
+| 400 | 428 | Yes | ✓ OK |
+| 512 | 540 | Yes | ✗ FAIL |
 
 > Some large packets failed — see failures_bytes.
 

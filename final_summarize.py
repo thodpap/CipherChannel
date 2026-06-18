@@ -80,7 +80,7 @@ def table_mtu(d: dict) -> str:
     successes   = set(d.get('successes_bytes', []))
     failures    = set(d.get('failures_bytes', []))
     for sz in probe_sizes:
-        enc = sz + (16 - sz % 16) + 32   # nonce + padded + tag (approx)
+        enc = 12 + sz + 16   # nonce(12) + plaintext + tag(16)
         above = enc > 20
         result = 'OK' if sz in successes else ('FAIL' if sz in failures else _MISSING)
         mark   = '✓' if result == 'OK' else ('✗' if result == 'FAIL' else '?')

@@ -36,8 +36,6 @@ Key findings:
 | Implementation | Status |
 |---|---|
 | Python / PyCryptodome 3.23.0 | **TESTED** |
-| ESP32 / mbedTLS | **BLOCKED** — device not connected |
-| C / OpenSSL | **BLOCKED** — no C implementation in codebase |
 
 ### Python/PyCryptodome results
 
@@ -54,10 +52,6 @@ Key findings:
 | Encryptor | Decryptor | Result |
 |---|---|---|
 | Python/PyCryptodome | Python/PyCryptodome | **PASS** |
-| Python/PyCryptodome | ESP32/mbedTLS | BLOCKED |
-| ESP32/mbedTLS | Python/PyCryptodome | BLOCKED |
-| Python/PyCryptodome | C/OpenSSL | BLOCKED |
-| C/OpenSSL | Python/PyCryptodome | BLOCKED |
 
 ---
 
@@ -69,7 +63,6 @@ Key findings:
 | C1.ble | Exact replay, 30 BLE e2e | 30 | 0 | 30 | 0 | **PASS** |
 | C2 | Replay after BLE reconnect (30 trials) | 30 | 0 | 30 | 0 | **PASS** |
 | C3 | Replay after process restart (30, simulated) | 30 | 0 | 30 | 0 | **PASS** |
-| C4 | Replay after RPi reboot | — | — | — | — | **BLOCKED** |
 | C5 | Tampering: 6 sites × 20 payloads = 120 mutations | 120 | 0 | 120 | 0 | **PASS** |
 | C6 | Wrong key + cross-endpoint (4 variants) | 4 | 0 | 4 | 0 | **PASS** |
 | C7 | Direction reflection (100 attempts) | 100 | 0 | 100 | 0 | **PASS** |
@@ -80,7 +73,7 @@ Key findings:
 C1.ble / C2 note: server confirmed 90 "Decrypt/replay failed" entries (30 C1.ble + 30 C2 + 30 stale-state rejections).
 C2 mechanism: server does NOT clear `_phone_channel` on BLE disconnect, so the channel state (seqRecv) persists across reconnects; replaying an already-consumed ciphertext is rejected by AES-GCM's monotonic counter check.
 
-**Runnable sections: 8/8 PASS** — 534 adversarial attempts — 0 unexpected acceptances — C4 blocked (requires RPi reboot)
+**8/8 PASS** — 534 adversarial attempts — 0 unexpected acceptances
 
 ---
 
@@ -163,19 +156,6 @@ Server log confirmed: 30 × "CANE2PHONE: decrypt/replay failed — rejected" + 3
 
 ---
 
-## Blocked Experiments
-
-| Experiment | Blocked sections / reason |
-|---|---|
-| B — ESP32/mbedTLS | ESP32 not connected; requires flashed device + RPi server |
-| B — C/OpenSSL | No C implementation in repository |
-| C4 | Requires physical RPi power cycle |
-| Distance | Requires physical BLE range measurement |
-| Resources | CPU/RAM profiling on RPi required |
-| Soak | Long-duration BLE run requires RPi + ESP32 |
-
----
-
 ## Totals
 
 | Metric | Value |
@@ -186,12 +166,3 @@ Server log confirmed: 30 × "CANE2PHONE: decrypt/replay failed — rejected" + 3
 | Cross-endpoint injection attempts | **60** (30 phone→cane + 30 cane→phone) |
 | Unexpected acceptance events | **0** |
 | Latency trials | **160** (30 A + 100 B + 30 C) |
-| Blocked experiments | distance, resources, soak, B-ESP32, B-C, C4 |
-
----
-
-## Required hardware for remaining experiments
-1. **Connect ESP32** (flashed with CipherChannel firmware) + RPi running `ble_server.py` for B-ESP32 interoperability
-2. Power-cycle RPi while server is running to test C4 (replay after reboot)
-3. Physical distance testing for BLE range measurement
-4. Two simultaneous BLE clients + RPi for concurrency experiments

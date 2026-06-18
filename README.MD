@@ -348,10 +348,11 @@ ESP32 (initiator)                          RPi (responder)
 
 | Component            | Library               | Version tested         |
 | -------------------- | --------------------- | ---------------------- |
-| Python CipherChannel | `pycryptodome`        | 3.20                   |
+| Python CipherChannel | `pycryptodome`        | 3.23.0                 |
 | RPi GATT server      | `bless`               | 0.3.0                  |
 | RPi GPIO buttons     | `RPi.GPIO`            | 0.7.x                  |
-| Laptop BLE client    | `bleak`               | 0.21                   |
+| Laptop BLE client    | `bleak`               | 3.0.2                  |
+| BLE transport (both) | BlueZ                 | 5.86                   |
 | ESP32 crypto         | mbedTLS (bundled)     | ESP32 Arduino core 2.x |
 | ESP32 persistence    | Preferences (bundled) | ESP32 Arduino core 2.x |
 | ESP32 threading      | FreeRTOS (bundled)    | ESP32 Arduino core 2.x |

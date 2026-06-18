@@ -1120,27 +1120,26 @@ These results refine the interpretation of the distance experiments. CipherChann
 
 Because the auxiliary cane controller is implemented on an ESP32-class microcontroller, we report the embedded resource footprint of the Arduino/mbedTLS implementation in Table~\ref{tab:esp32-footprint}. Flash and dynamic RAM usage were obtained from the Arduino build output. Runtime stack availability was estimated using the FreeRTOS stack high-water mark reported during the BLE/CipherChannel execution path. Power consumption was not measured in this experiment and is therefore not reported.
 
+
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.2}
 \caption{ESP32 cane-controller firmware resource footprint}
 \label{tab:esp32-footprint}
 \centering
-\footnotesize % Increased from \scriptsize for better readability
+\footnotesize
 \begin{tabularx}{\columnwidth}{@{} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{4cm} @{}}
 \toprule
 \textbf{Metric} & \textbf{Observed value} \\
 \midrule
-Total flash / ROM usage with CipherChannel & 1,155,721~B / 1,310,720~B (88\%) \\
-Total flash / ROM usage without CipherChannel & 1,147,437~B / 1,310,720~B (87\%) \\
-Estimated CipherChannel flash increment & 8,284~B, i.e., approx.\ 8.09~KiB \\
-Dynamic RAM usage with CipherChannel & 38,748~B / 327,680~B (11\%) \\
-Dynamic RAM usage without CipherChannel & 38,748~B / 327,680~B (11\%) \\
-Estimated CipherChannel dynamic-RAM increment & 0~B \\
-Free RAM remaining & 288,932~B \\
-Minimum free stack & 4,312 words, i.e., approx.\ 17,248~B \\
-Measurement method & Arduino build output and FreeRTOS stack high-water mark \\
+Total flash / ROM usage with CipherChannel & 1,158,853~B / 1,310,720~B (88.4\%) \\
+Total flash / ROM usage without CipherChannel & 1,147,437~B / 1,310,720~B (87.5\%) \\
+Estimated CipherChannel flash increment & 11,416~B, i.e., approx.\ 11.15~KiB \\
+Build-reported dynamic RAM with CipherChannel & 38,748~B / 327,680~B (11.8\%) \\
+Estimated CipherChannel global dynamic-RAM increment & 0~B \\
+Minimum free heap during operation & 118,864~B \\
+Minimum free stack during operation & 5,448~B \\
 \midrule
-\multicolumn{2}{@{}p{\columnwidth}@{}}{\scriptsize \textit{Note:} Total firmware values include the Arduino core, BLE support code, mbedTLS, platform support code, NVS handling, and application logic. The CipherChannel-specific flash increment was estimated by compiling the same ESP32 BLE cane firmware with CipherChannel enabled and disabled and subtracting the Arduino build-reported program-storage usage. No increase in Arduino build-reported global dynamic-RAM usage was observed. Stack usage was measured at runtime using the FreeRTOS stack high-water mark during BLE and CipherChannel operation.} \\
+\multicolumn{2}{@{}p{\columnwidth}@{}}{\scriptsize \textit{Note:} Flash and global dynamic-RAM values are taken from Arduino build output. Heap and stack values were measured at runtime during BLE and CipherChannel operation using ESP32 heap instrumentation and the FreeRTOS stack high-water mark. The CipherChannel flash increment was estimated by compiling the same firmware with CipherChannel enabled and disabled.} \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1381,11 +1380,11 @@ R.~J.~Kosinski, ``A Literature Review on Reaction Time,'' Clemson University, Se
 % ---------------------------------------------------------------
 % BIOGRAPHIES
 % ---------------------------------------------------------------
-\begin{IEEEbiographynophoto}{Author One}
-\TODO{Biography text: affiliation, research interests, relevant prior work.}
-\end{IEEEbiographynophoto}
+% \begin{IEEEbiographynophoto}{Author One}
+% \TODO{Biography text: affiliation, research interests, relevant prior work.}
+% \end{IEEEbiographynophoto}
 
-\begin{IEEEbiographynophoto}{Author Two}
-\TODO{Biography text: affiliation, research interests, relevant prior work.}
-\end{IEEEbiographynophoto}
+% \begin{IEEEbiographynophoto}{Author Two}
+% \TODO{Biography text: affiliation, research interests, relevant prior work.}
+% \end{IEEEbiographynophoto}
 \end{document}
