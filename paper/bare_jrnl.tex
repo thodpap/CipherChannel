@@ -288,7 +288,7 @@
 
 % ---------------------------------------------------------------
 
-\title{CipherChannel: An Application-Layer Authenticated Encryption\\
+\title{CipherChannel: An Application Layer Authenticated Encryption\\
 Protocol for Secure Bluetooth Low Energy Command\\
 and Control of Medical Exoskeleton Devices}
 
@@ -296,8 +296,8 @@ and Control of Medical Exoskeleton Devices}
   Theodoros Frixos~Paparrigopoulos~\orcidlink{0009-0006-0786-9018},
   Björn Boss~Henrichsen~\orcidlink{0009-0002-3430-4259},
   Marios~Koniaris~\orcidlink{0000-0002-0679-5516},
-  Panayiotis~Tsanakas~\orcidlink{0000-0002-8503-5784},
-  Pavlos~Michalopoulos%
+  Pavlos~Michalopoulos,
+  Panayiotis~Tsanakas~\orcidlink{0000-0002-8503-5784}%
 
 % \thanks{Manuscript submitted \TODO{month, year}. Revised \TODO{month, year}.}%
 % \thanks{Authors are with \TODO{Department, Institution, City, Country}.
@@ -315,11 +315,11 @@ and Control of Medical Exoskeleton Devices}
 % ABSTRACT
 % ---------------------------------------------------------------
 \begin{abstract}
-Bluetooth Low Energy (BLE) is widely used in wearable and rehabilitation devices, but BLE pairing and link-layer encryption are not sufficient as the sole protection mechanism for safety-relevant exoskeleton command channels. In a powered lower-limb exoskeleton, a replayed or injected command can trigger a physical state transition, making command authentication and replay resistance necessary above the BLE link layer.
+Bluetooth Low Energy (BLE) is widely used in wearable and rehabilitation devices, but BLE pairing and link layer encryption are not sufficient as the sole protection mechanism for safety relevant exoskeleton command channels. In a powered lower limb exoskeleton, a replayed or injected command can trigger a physical state transition, making command authentication and replay resistance necessary above the BLE link layer.
 
-This paper presents \emph{CipherChannel}, an application-layer authenticated-encryption protocol for BLE-mediated exoskeleton command and control. Implemented above GATT, CipherChannel combines AES-256-GCM, persistent 96-bit counter nonces, direction-separated replay protection, physically gated key provisioning, and gateway-side command validation before commands are released to the proprietary exoskeleton runtime.
+This paper presents \emph{CipherChannel}, an application layer authenticated-encryption protocol for BLE mediated exoskeleton command and control. Implemented above GATT, CipherChannel combines AES-256-GCM, persistent 96-bit counter nonces, direction-separated replay protection, physically gated key provisioning, and gateway side command validation before commands are released to the proprietary exoskeleton runtime.
 
-CipherChannel passed all protocol-correctness and provisioning-gate tests, and encrypted command exchange achieved 169.6\,ms median and 214.7\,ms p99 client-observed command-to-ACK latency.
+CipherChannel passed all protocol correctness and provisioning-gate tests, and encrypted command exchange achieved 169.6\,ms median and 214.7\,ms p99 client-observed command to-ACK latency at 0.5 m. Crash safe counter persistence, not AES-GCM, dominated the gateway path.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -336,41 +336,41 @@ medical exoskeletons, IoT security.
 \label{sec:intro}
 % ---------------------------------------------------------------
 
-A replayed \texttt{STAND\_UP} command delivered to a seated patient is not merely a data-privacy event; it is a fall risk. This distinction is central to wireless control of powered lower-limb exoskeletons. In many IoT systems, a compromised packet may expose data, degrade service quality, or trigger an incorrect measurement. In a rehabilitation exoskeleton, a single accepted command can change the physical state of a device attached to a human body.
+A replayed \texttt{STAND\_UP} command delivered to a seated patient is not merely a data privacy event; it is a fall risk. This distinction is central to wireless control of powered lower limb exoskeletons. In many IoT systems, a compromised packet may expose data, degrade service quality, or trigger an incorrect measurement. In a rehabilitation exoskeleton, a single accepted command can change the physical state of a device attached to a human body.
 
-Powered lower-limb exoskeletons have evolved from laboratory prototypes into clinically relevant rehabilitation and mobility platforms, supporting assisted standing, stepping, and ambulation for users with spinal cord injury, stroke, and other neuromotor impairments~\cite{baud2021review,pinto2020performance}.
-Recent research systems have explored wireless exoskeleton-control interfaces, while clinical lower-limb exoskeleton studies demonstrate assisted mobility functions such as standing, stepping, and ambulation in rehabilitation settings~\cite{andersson2024wireless,atlas2030_2022}.
+Powered lower limb exoskeletons have evolved from laboratory prototypes into clinically relevant rehabilitation and mobility platforms, supporting assisted standing, stepping, and ambulation for users with spinal cord injury, stroke, and other neuromotor impairments~\cite{baud2021review,pinto2020performance}.
+Recent research systems have explored wireless exoskeleton-control interfaces, while clinical lower limb exoskeleton studies demonstrate assisted mobility functions such as standing, stepping, and ambulation in rehabilitation settings~\cite{andersson2024wireless,atlas2030_2022}.
 Bluetooth Low Energy (BLE) is a natural technology for these operations, as it is available on smartphones, microcontrollers, and embedded gateways. It further facilitates the Generic Attribute Profile (GATT) abstraction for compact command and status exchange.
 
-However, BLE was not designed as a complete safety boundary for medical command traffic. A decade of published attacks, including KNOB, BIAS, BLESA, SweynTooth, InjectaBLE, and BLUFFS, demonstrates that BLE link-layer encryption is systematically insufficient for safety-critical command traffic
+However, BLE was not designed as a complete safety boundary for medical command traffic. A decade of published attacks, including KNOB, BIAS, BLESA, SweynTooth, InjectaBLE, and BLUFFS, demonstrates that BLE link layer encryption is systematically insufficient for safety critical command traffic
 ~\cite{antonioli2020knob,antonioli2020bias,wu2020blesa,garbelini2020sweyntooth,
 cayre2021injectable,antonioli2023bluffs}. 
-These attacks span key-entropy downgrade, device impersonation, unauthenticated reconnection, implementation vulnerabilities in BLE stacks, frame injection into encrypted connections, and weaknesses in Bluetooth session-key derivation. The cumulative implication is unambiguous: relying on BLE LE Secure Connections alone is insufficient for any device whose compromise carries patient-safety consequences.
+These attacks span key entropy downgrade, device impersonation, unauthenticated reconnection, implementation vulnerabilities in BLE stacks, frame injection into encrypted connections, and weaknesses in Bluetooth session-key derivation. The cumulative implication is unambiguous: relying on BLE LE Secure Connections alone is insufficient for any device whose compromise carries patient-safety consequences.
 
-Application-layer security over BLE has been studied in the broader wearable and IoT literature. Prior work has proposed secure communication frameworks between the application and GATT layers for generic BLE wearables~\cite{zhang2019bleframework} and privacy-aware authentication mechanisms for BLE-based IoT objects~\cite{cha2017bleiot}. These works establish the value of placing cryptographic protection above BLE pairing. They do not, however, address the specific semantics of exoskeleton command acceptance: sparse but safety-critical control messages, replay resistance across disconnections, crash-safe command handling, physically gated provisioning, and isolation between a BLE gateway and a proprietary exoskeleton runtime.
+Application layer security over BLE has been studied in the broader wearable and IoT literature. Prior work has proposed secure communication frameworks between the application and GATT layers for generic BLE wearables~\cite{zhang2019bleframework} and privacy-aware authentication mechanisms for BLE based IoT objects~\cite{cha2017bleiot}. These works establish the value of placing cryptographic protection above BLE pairing. They do not, however, address the specific semantics of exoskeleton command acceptance: sparse but safety critical control messages, replay resistance across disconnections, crash safe  command handling, physically gated provisioning, and isolation between a BLE gateway and a proprietary exoskeleton runtime.
 
-Conversely, wireless exoskeleton-control research has largely focused on control, sensing, rehabilitation performance, and communication latency rather than on authenticated command-channel security. Existing systems demonstrate the utility of BLE or other wireless links for exoskeleton supervision, but they do not provide a reusable application-layer authenticated-encryption protocol for BLE-mediated lower-limb exoskeleton command and control
-~\cite{andersson2024wireless,vinoj2019bclle,ozhiken2025ankle,wilhelm2022finger}. This leaves a practical gap between generic BLE security mechanisms and the safety requirements of command-driven rehabilitation robotics.
+Conversely, wireless exoskeleton-control research has largely focused on control, sensing, rehabilitation performance, and communication latency rather than on authenticated command channel security. Existing systems demonstrate the utility of BLE or other wireless links for exoskeleton supervision, but they do not provide a reusable application layer authenticated-encryption protocol for BLE mediated lower limb exoskeleton command and control
+~\cite{andersson2024wireless,vinoj2019bclle,ozhiken2025ankle,wilhelm2022finger}. This leaves a practical gap between generic BLE security mechanisms and the safety requirements of command driven rehabilitation robotics.
 
-Despite this risk, existing work does not provide a protocol-level treatment of application-layer command authentication for BLE-mediated lower-limb exoskeleton control. The missing problem is not only encryption over BLE, but the acceptance rule for safety-relevant commands: when should a gateway release a received wireless command to a runtime that can move a human-attached device?
+Despite this risk, existing work does not provide a protocol level treatment of application layer command authentication for BLE mediated lower limb exoskeleton control. The missing problem is not only encryption over BLE, but the acceptance rule for safety relevant commands: when should a gateway release a received wireless command to a runtime that can move a human-attached device?
 
-This paper addresses that question through \emph{CipherChannel}, an application-layer authenticated-encryption protocol for BLE/GATT command channels. The central design principle is that BLE connectivity is not equivalent to command authorisation. A command is accepted only after application-layer AEAD verification, monotonic freshness validation, direction-parity validation, and persistent replay-state update. Although the evaluated system is a lower-limb medical exoskeleton, the design applies more broadly to sparse, safety-relevant BLE command channels in which replayed or modified commands may have physical consequences.
+This paper addresses that question through \emph{CipherChannel}, an application layer authenticated-encryption protocol for BLE/GATT command channels. The central design principle is that BLE connectivity is not equivalent to command authorisation. A command is accepted only after application layer AEAD verification, monotonic freshness validation, direction-parity validation, and persistent replay state update. Although the evaluated system is a lower limb medical exoskeleton, the design applies more broadly to sparse, safety relevant BLE command channels in which replayed or modified commands may have physical consequences.
 
-The evaluated system consists of a supervisory client, a Raspberry~Pi BLE/GATT gateway, an auxiliary ESP32-based cane controller, and a proprietary lower-limb exoskeleton runtime. The supervisory client issues high-level commands such as standing, walking, or stopping, while the cane represents a second authorised control endpoint that can generate user-triggered events during operation. Both endpoints communicate with the gateway over BLE/GATT and both must satisfy the same CipherChannel authentication, freshness, and direction validation checks before any command is forwarded to the exoskeleton runtime.
+The evaluated system consists of a supervisory client, a Raspberry~Pi BLE/GATT gateway, an auxiliary ESP32-based cane controller, and a proprietary lower limb exoskeleton runtime. The supervisory client issues high-level commands such as standing, walking, or stopping, while the cane represents a second authorised control endpoint that can generate user triggered events during operation. Both endpoints communicate with the gateway over BLE/GATT and both must satisfy the same CipherChannel authentication, freshness, and direction validation checks before any command is forwarded to the exoskeleton runtime.
 
 This paper makes the following contributions:
 
 \begin{itemize}
-  \item \textbf{Threat-driven command-channel model for BLE exoskeleton control}: We identify the security gap between BLE link-layer protection and safety-relevant command acceptance in lower-limb exoskeleton supervision. The model distinguishes BLE connection establishment from command authorisation and treats replay, reflection, stale-session reuse, and command injection as first-class threats to command admission.
+  \item \textbf{Threat-driven command channel model for BLE exoskeleton control}: We identify the security gap between BLE link layer protection and safety relevant command acceptance in lower limb exoskeleton supervision. The model distinguishes BLE connection establishment from command authorisation and treats replay, reflection, stale-session reuse, and command injection as first-class threats to command admission.
 
-  \item \textbf{CipherChannel protocol}: We design and formalise CipherChannel, an application-layer protocol that combines AES-256-GCM, persistent 96-bit monotonic counter nonces, direction-separated parity classes, crash-safe counter persistence, and fail-closed receive semantics. The protocol avoids wall-clock freshness windows, unauthenticated reset messages, and BLE-session-dependent replay state.
+  \item \textbf{CipherChannel protocol}: We present CipherChannel, an application-layer command-admission protocol for BLE-connected exoskeleton controllers. The protocol uses AES-256-GCM authenticated encryption, persistent 96-bit monotonic counter nonces, direction-separated parity classes, crash safe counter persistence, and fail-closed receive semantics. We provide a security rationale for its replay, tampering, reflection, stale-counter, and wrong-key rejection behaviour, and validate these behaviours experimentally. The design avoids wall-clock freshness windows, unauthenticated reset messages, and BLE session-dependent replay state.
 
-  \item \textbf{Gateway-mediated safety boundary}: We introduce a gateway-mediated integration pattern in which BLE packets are decrypted, authenticated, checked for freshness, and durably recorded before any command is forwarded to the proprietary exoskeleton runtime. This allows a command-authentication boundary to be added above GATT without modifying the underlying runtime.
+  \item \textbf{Gateway mediated safety boundary}: We introduce a gateway mediated integration pattern in which BLE packets are decrypted, authenticated, checked for freshness, and durably recorded before any command is forwarded to the proprietary exoskeleton runtime. This allows a command authentication boundary to be added above GATT without modifying the underlying runtime.
 
-  \item \textbf{Empirical validation under measured BLE conditions}: We evaluate the current reference implementation through protocol-correctness tests, provisioning-gate tests, adversarial attempts, cross-endpoint injection attempts, steady-state BLE command trials, cold-start trials, key-exchange trials, fixed-distance obstruction trials, and an exploratory two-wall range-to-failure run. The results support the replay-resistance and practical latency claims for sparse supervisory commands.
+  \item \textbf{Empirical validation under measured BLE conditions}: We evaluate the current reference implementation through protocol correctness tests, provisioning-gate tests, adversarial attempts, cross endpoint injection attempts, steady-state BLE command trials, cold start trials, key exchange trials, fixed-distance obstruction trials, and an exploratory two wall range-to-failure run. The results support the replay resistance and practical latency claims for sparse supervisory commands.
 \end{itemize}
 
-The remainder of the paper develops this argument in stages. Section~\ref{sec:background} reviews the BLE security weaknesses, exoskeleton-control assumptions, and application-layer security approaches that motivate protection above the BLE link layer. Section~\ref{sec:sysarch} then introduces the gateway-mediated architecture used to separate wireless connectivity from runtime command acceptance. Building on this architecture, Section~\ref{sec:protocol} specifies the CipherChannel protocol, including its threat model, packet format, counter-nonce replay protection, key architecture, provisioning mechanism, and reset-free operation. Section~\ref{sec:impl} describes the reference implementation used in the prototype, while Section~\ref{sec:eval} presents the experimental evaluation, including protocol-correctness, adversarial-rejection, endpoint-isolation, latency, processing-cost, key-exchange, and distance/obstruction results. Section~\ref{sec:discussion} discusses the implications of these results, the deployment trade-offs, the remaining limitations, regulatory alignment, and future work. Section~\ref{sec:conclusion} concludes the paper.
+The remainder of the paper is organised as follows. Section~\ref{sec:background} reviews BLE and application-layer security background. Section~\ref{sec:sysarch} presents the gateway-mediated architecture, and Section~\ref{sec:protocol} specifies CipherChannel. Section~\ref{sec:impl} describes the prototype implementation. Section~\ref{sec:eval} reports the experimental evaluation. Section~\ref{sec:discussion} discusses implications, limitations, and deployment trade-offs. Section~\ref{sec:conclusion} concludes the paper.
 
 
 % ---------------------------------------------------------------
@@ -380,39 +380,39 @@ The remainder of the paper develops this argument in stages. Section~\ref{sec:ba
 
 \subsection{BLE Security Model and Known Vulnerabilities}
 
-The BLE security architecture, defined by the Bluetooth Core Specification, combines pairing/bonding, long-term key establishment, and link-layer packet encryption.
-LE Secure Connections (LESC), introduced in Bluetooth~4.2, uses Elliptic-Curve Diffie--Hellman during pairing, while encrypted BLE connections protect link-layer packets using AES-CCM.
+The BLE security architecture, defined by the Bluetooth Core Specification, combines pairing/bonding, long-term key establishment, and link layer packet encryption.
+LE Secure Connections (LESC), introduced in Bluetooth~4.2, uses Elliptic-Curve Diffie--Hellman during pairing, while encrypted BLE connections protect link layer packets using AES-CCM.
 Above the link layer, BLE applications interact mainly through ATT/GATT services and characteristics; although L2CAP may segment and reassemble data, GATT-level semantics and authorization remain application responsibilities~\cite{barua2022survey}.
 
-Published attacks show that BLE link-layer security is not sufficient as the only protection for safety-critical command traffic.
+Published attacks show that BLE link layer security is not sufficient as the only protection for safety critical command traffic.
 KNOB enables session-key entropy downgrade~\cite{antonioli2020knob}; BIAS permits impersonation of previously bonded devices~\cite{antonioli2020bias}; BLESA exploits unauthenticated reconnection~\cite{wu2020blesa}; InjectaBLE demonstrates frame injection into encrypted BLE connections~\cite{cayre2021injectable}; and BLUFFS breaks forward and future secrecy by manipulating Bluetooth session-key derivation~\cite{antonioli2023bluffs}.
 At the implementation level, SweynTooth exposed memory-safety and state-machine failures in BLE SoC stacks~\cite{garbelini2020sweyntooth}, while recent MITM experiments against modern fitness trackers show that standards-compliant devices may still remain vulnerable due to association models, standard design choices, or incomplete mitigations~\cite{gress2025fitness}.
 
-Surveys of BLE and BLE Mesh security reach the same conclusion: later Bluetooth versions improve confidentiality, authenticity, and privacy, but deployments remain exposed to insecure pairing, weak application-layer authorization, mobile-application attacks, fingerprinting, stack vulnerabilities, and zero-day attacks~\cite{barua2022survey,ghori2020blemesh,caesar2022survey}.
-CipherChannel therefore treats BLE link-layer encryption as useful but insufficient and places an authenticated-encryption boundary above GATT before any exoskeleton command can be accepted.
+Surveys of BLE and BLE Mesh security reach the same conclusion: later Bluetooth versions improve confidentiality, authenticity, and privacy, but deployments remain exposed to insecure pairing, weak application layer authorization, mobile-application attacks, fingerprinting, stack vulnerabilities, and zero-day attacks~\cite{barua2022survey,ghori2020blemesh,caesar2022survey}.
+CipherChannel therefore treats BLE link layer encryption as useful but insufficient and places an authenticated-encryption boundary above GATT before any exoskeleton command can be accepted.
 
-Recent IIoT work has shown that AES-256-GCM can provide application-layer end-to-end protection on ESP32/Raspberry Pi pipelines, but it targets MQTT telemetry rather than replay-resistant BLE command admission~\cite{amirkhanova2026iiot}.
+Recent IIoT work has shown that AES-256-GCM can provide application layer end-to-end protection on ESP32/Raspberry Pi pipelines, but it targets MQTT telemetry rather than replay resistant BLE command admission~\cite{amirkhanova2026iiot}.
 
 
 \subsection{Exoskeleton Control Architectures}
 
-Lower-limb exoskeleton control systems are commonly organised into a high-level intent-recognition layer, a mid-level finite-state-machine or trajectory controller, and a low-level joint controller~\cite{tucker2015review,baud2021review}.
-Commercial and research lower-limb exoskeleton systems are commonly evaluated through assisted mobility tasks or training modes such as standing, sitting, stepping, walking, or gait rehabilitation~\cite{vandijsseldonk2021predictors,lee2021locomat,atlas2030_2022}.
-These commands are sparse but safety-relevant: replaying or modifying a single valid command may be more consequential than corrupting a telemetry sample.
+lower limb exoskeleton control systems are commonly organised into a high-level intent-recognition layer, a mid-level finite-state-machine or trajectory controller, and a low-level joint controller~\cite{tucker2015review,baud2021review}.
+Commercial and research lower limb exoskeleton systems are commonly evaluated through assisted mobility tasks or training modes such as standing, sitting, stepping, walking, or gait rehabilitation~\cite{vandijsseldonk2021predictors,lee2021locomat,atlas2030_2022}.
+These commands are sparse but safety relevant: replaying or modifying a single valid command may be more consequential than corrupting a telemetry sample.
 
-Recent lower-limb rehabilitation-robot work also adopts hierarchical distributed control architectures to improve modularity, scalability, real-time response, and control stability, reinforcing the need for well-defined command boundaries in such systems~\cite{wang2025distributed}.
+Recent lower limb rehabilitation-robot work also adopts hierarchical distributed control architectures to improve modularity, scalability, real-time response, and control stability, reinforcing the need for well-defined command boundaries in such systems~\cite{wang2025distributed}.
 
 Wireless interfaces are increasingly used to move supervisory commands or sensor signals away from tethered operator stations.
 BLE has been used to relay smartphone inertial data for rehabilitation-exoskeleton control and to evaluate communication-induced latency~\cite{andersson2024wireless}.
-Secure transmission has also been considered in brain-controlled lower-limb exoskeleton systems~\cite{vinoj2019bclle}, encrypted channels have been identified as necessary in a remotely controlled ankle-exoskeleton prototype~\cite{ozhiken2025ankle}, and BLE remote control has been added to a finger-exoskeleton rehabilitation platform~\cite{wilhelm2022finger}.
-These works establish the need for wireless exoskeleton supervision, but they do not provide a reusable application-layer BLE/GATT authenticated command-channel protocol for lower-limb exoskeleton control.
+Secure transmission has also been considered in brain-controlled lower limb exoskeleton systems~\cite{vinoj2019bclle}, encrypted channels have been identified as necessary in a remotely controlled ankle-exoskeleton prototype~\cite{ozhiken2025ankle}, and BLE remote control has been added to a finger-exoskeleton rehabilitation platform~\cite{wilhelm2022finger}.
+These works establish the need for wireless exoskeleton supervision, but they do not provide a reusable application layer BLE/GATT authenticated command channel protocol for lower limb exoskeleton control.
 
-\subsection{Application-Layer Security for BLE and Medical IoT}
+\subsection{Application Layer Security for BLE and Medical IoT}
 
-Application-layer security for medical wireless devices has been studied mainly in implantable medical devices, IoMT, and healthcare-IoT systems.
+Application layer security for medical wireless devices has been studied mainly in implantable medical devices, IoMT, and healthcare-IoT systems.
 Command injection against a commercial neurostimulator has been demonstrated together with a lightweight session-key protocol~\cite{marin2018neurostimulator}.
 A dual-factor, smartphone-proxied IMD access-control scheme with forensic support has also been proposed~\cite{chi2018esafe}.
-Broader healthcare-IoT studies report continued exposure to unauthorised access, impersonation, eavesdropping, tampering, denial of service, and data-integrity attacks across device, network, cloud, and application layers~\cite{khatun2023hiotml,adil2024hciot,mrabet2020iotlayers}.
+Broader healthcare-IoT studies report continued exposure to unauthorised access, impersonation, eavesdropping, tampering, denial of service, and data integrity attacks across device, network, cloud, and application layers~\cite{khatun2023hiotml,adil2024hciot,mrabet2020iotlayers}.
 Related medical-device studies further show that command manipulation, replay, and unsafe security trade-offs also occur in implantable and automated therapeutic systems~\cite{zheng2017wannadie}.
 
 Recent IoT-healthcare work likewise emphasizes lightweight, device-level, and edge-aware protection rather than relying only on the underlying network.
@@ -421,17 +421,17 @@ Lightweight access control has been proposed for smart medical wearables~\cite{i
 
 Within BLE specifically, an application-to-GATT security framework has been proposed for wearable devices, providing fresh keys and encrypt/decrypt services against replay, MITM, tampering, and passive eavesdropping~\cite{zhang2019bleframework}.
 The tradeoff between BLE random-address privacy and authentication has also been addressed through an ECC-based access-control and secure-communication mechanism for BLE IoT objects~\cite{cha2017bleiot}.
-Additional empirical studies of consumer BLE and Bluetooth deployments confirm persistent authentication, pairing, and protocol-level weaknesses beyond the formal Bluetooth specification~\cite{peker2022heartrate,sevier2019ble,hassan2018btsurvey}.
+Additional empirical studies of consumer BLE and Bluetooth deployments confirm persistent authentication, pairing, and protocol level weaknesses beyond the formal Bluetooth specification~\cite{peker2022heartrate,sevier2019ble,hassan2018btsurvey}.
 
 Recent BLE and embedded-IoT security work also explores alternative mechanisms for pairing resilience, key establishment, and lightweight authenticated encryption.
 Blockchain-backed resilient pairing and bonding has been proposed for IPv6-over-BLE device migration, combining lightweight Encrypt-then-Authenticate protection, ledger-based transfer of bonding information across gateways, BAN-logic security analysis, and Deep-Q-Learning-based MITM detection~\cite{devi2025blockchainble}.
 Physical-layer key generation combined with physically unclonable functions has also been proposed for resource-constrained IoT edge nodes, deriving session keys from BLE channel entropy and hardware-level device uniqueness without relying on a pre-shared secret~\cite{hadrich2025plkgpuf}.
-The generated BLE-derived keys in that approach pass the NIST Statistical Test Suite, supporting their suitability as cryptographic keying material for lightweight embedded deployments~\cite{hadrich2025plkgpuf}.
+The generated BLE derived keys in that approach pass the NIST Statistical Test Suite, supporting their suitability as cryptographic keying material for lightweight embedded deployments~\cite{hadrich2025plkgpuf}.
 At the cryptographic implementation level, ChaCha20-Poly1305 has been benchmarked on ARM Cortex-M4 processors as a compact, constant-time AEAD candidate for high-speed embedded IoT applications without AES hardware acceleration~\cite{desantis2017chacha20}.
 The reported implementation achieves substantially lower cycle counts than AES-GCM on the evaluated Cortex-M4 platform, supporting the broader point that AEAD selection depends strongly on the available embedded hardware acceleration~\cite{desantis2017chacha20}.
 
-CipherChannel differs from this prior BLE, IoMT, and healthcare-IoT work by targeting the command semantics of powered lower-limb exoskeletons.
-It combines application-layer authenticated encryption, persistent counter-based replay protection, physical-presence-gated provisioning, validated forwarding into a proprietary runtime, dual supervisory/cane endpoint separation, and a validated Python/PyCryptodome reference implementation; C/OpenSSL and ESP32/mbedTLS remain portability targets for future validation.
+CipherChannel differs from this prior BLE, IoMT, and healthcare-IoT work by targeting the command semantics of powered lower limb exoskeletons.
+It combines application layer authenticated encryption, persistent counter-based replay protection, physical-presence-gated provisioning, validated forwarding into a proprietary runtime, dual supervisory/cane endpoint separation, and a validated Python/PyCryptodome reference implementation; C/OpenSSL and ESP32/mbedTLS remain portability targets for future validation.
 
 % ---------------------------------------------------------------
 % ---------------------------------------------------------------
@@ -439,9 +439,9 @@ It combines application-layer authenticated encryption, persistent counter-based
 \label{sec:sysarch}
 % ---------------------------------------------------------------
 
-\subsection{Gateway-Mediated Command Boundary}
+\subsection{Gateway Mediated Command Boundary}
 
-The architecture is designed to evaluate CipherChannel as an application-layer command-authentication boundary above BLE/GATT, not as a new exoskeleton control stack. The central architectural pattern is a \emph{gateway-mediated command boundary}: BLE packets terminate at a gateway, but commands are not released to the exoskeleton runtime until they have passed application-layer authentication, replay validation, direction validation, and persistent counter-state update.
+The architecture is designed to evaluate CipherChannel as an application layer command authentication boundary above BLE/GATT, not as a new exoskeleton control stack. The central architectural pattern is a \emph{gateway mediated command boundary}: BLE packets terminate at a gateway, but commands are not released to the exoskeleton runtime until they have passed application layer authentication, replay validation, direction validation, and persistent counter-state update.
 
 This separation is important because BLE connection establishment is not treated as command authorisation. A peer may connect over BLE, but the gateway forwards a command only if the received CipherChannel packet is valid under the operational key, carries a fresh counter nonce, has the expected direction parity, and updates the receiver replay state before plaintext command release. The proprietary exoskeleton runtime is therefore placed behind a cryptographic admission-control point.
 
@@ -493,7 +493,7 @@ Fig.~\ref{fig:architecture} shows the evaluated instance of this pattern. It con
 
 \end{tikzpicture}%
 }
-\caption{Gateway-mediated command boundary. CipherChannel protects BLE/GATT traffic between the supervisory client or cane and the gateway. The proprietary exoskeleton runtime receives only commands that have passed application-layer authentication, replay validation, direction validation, and persistent counter-state update.}
+\caption{Gateway mediated command boundary. CipherChannel protects BLE/GATT traffic between the supervisory client or cane and the gateway. The proprietary exoskeleton runtime receives only commands that have passed application layer authentication, replay validation, direction validation, and persistent counter-state update.}
 \label{fig:architecture}
 \end{figure}
 
@@ -501,7 +501,7 @@ Fig.~\ref{fig:architecture} shows the evaluated instance of this pattern. It con
 
 The supervisory client represents the operator-facing control endpoint. In a deployment, this may be a mobile application used by a clinician or authorised user to initiate high-level operational commands such as \texttt{STAND\_UP}, \texttt{START\_WALKING}, \texttt{TAKE\_STEP}, \texttt{STOP\_ACTION}. In the experiments, the mobile application was replaced by a laptop running a Python/Bleak client to provide repeatable timing instrumentation and structured logs. This substitution changes only the BLE client implementation; the GATT writes, CipherChannel packet format, gateway validation path, and runtime forwarding logic remain the same.
 
-The Raspberry~Pi~3A gateway terminates BLE/GATT communication and enforces the CipherChannel admission rule. It runs Raspbian OS, Python~3, BlueZ, and the \texttt{bless} GATT server library. The gateway exposes command, notification, and security-provisioning characteristics for the supervisory-client and cane paths.
+The Raspberry~Pi~3A gateway terminates BLE/GATT communication and enforces the CipherChannel admission rule. It runs Raspbian OS, Python~3, BlueZ, and the \texttt{bless} GATT server library. The gateway exposes command, notification, and security-provisioning characteristics for the supervisory client and cane paths.
 
 The ESP32 auxiliary cane controller represents a second authorised endpoint. It scans for the gateway service UUID, connects as a BLE central, and writes encrypted cane-trigger events to the gateway. The cane implementation uses Arduino~C++ with mbedTLS and persists its CipherChannel state in ESP32 Non-Volatile Storage. A hardware button clears the stored key and triggers re-provisioning.
 
@@ -509,7 +509,7 @@ The proprietary exoskeleton runtime is treated as an external command consumer. 
 
 \subsection{Command Flow and Runtime Isolation}
 
-A command follows a five-stage path. First, the supervisory client or cane serialises a high-level action into a compact UTF-8 payload. During experiments, the payload also includes an optional trial identifier used only for measurement:
+A command follows a five stage path. First, the supervisory client or cane serialises a high-level action into a compact UTF-8 payload. During experiments, the payload also includes an optional trial identifier used only for measurement:
 
 \begin{verbatim}
 {"trial_id":"t0001", "action":"STAND_UP"}
@@ -527,18 +527,18 @@ Fifth, the gateway writes the validated action to the outgoing FIFO connected to
 
 \subsection{Endpoint Roles and State Separation}
 
-The gateway maintains separate CipherChannel contexts for the supervisory-client path and the cane path. Each context has its own send counter, receive counter, direction parity, and replay state. This prevents a valid packet from one logical endpoint path from being accepted as fresh traffic on another path. The separation is particularly important because the supervisory client and the cane can both communicate with the same gateway during the same operational window.
+The gateway maintains separate CipherChannel contexts for the supervisory client path and the cane path. Each context has its own send counter, receive counter, direction parity, and replay state. This prevents a valid packet from one logical endpoint path from being accepted as fresh traffic on another path. The separation is particularly important because the supervisory client and the cane can both communicate with the same gateway during the same operational window.
 
-Operationally, the supervisory client initiates high-level mode changes, while the cane may later continue or interrupt execution through user-triggered events. Both paths are subject to the same command-admission rule: a command is forwarded to the runtime only after CipherChannel authentication, freshness validation, direction validation, and replay-state persistence.
+Operationally, the supervisory client initiates high-level mode changes, while the cane may later continue or interrupt execution through user triggered events. Both paths are subject to the same command admission rule: a command is forwarded to the runtime only after CipherChannel authentication, freshness validation, direction validation, and replay state persistence.
 
 % \subsection{Implementation Notes}
 
 % The gateway uses three main execution paths. A BLE/GATT thread drives the
-% \texttt{bless} server event loop. A gateway-to-runtime thread dequeues validated
-% commands and writes them to the outgoing FIFO. A runtime-to-gateway thread reads
+% \texttt{bless} server event loop. A gateway to runtime thread dequeues validated
+% commands and writes them to the outgoing FIFO. A runtime to gateway thread reads
 % responses from the return FIFO and routes them to BLE notifications. These
 % threads communicate through bounded queues, so the cryptographic validation path
-% does not share mutable command buffers directly with the runtime-forwarding
+% does not share mutable command buffers directly with the runtime forwarding
 % path.
 
 % Before writing a command to the outgoing FIFO, the gateway checks whether the
@@ -550,7 +550,7 @@ Operationally, the supervisory client initiates high-level mode changes, while t
 % The architecture deliberately keeps implementation-specific details below the
 % protocol abstraction. The Raspberry~Pi, BlueZ, \texttt{bless}, FIFO, and ESP32
 % details are used to make the evaluation reproducible, but the research
-% contribution is the gateway-mediated command-authentication boundary and the
+% contribution is the gateway mediated command authentication boundary and the
 % CipherChannel protocol enforced at that boundary.
 
 % BEGIN COMMENTED OUT: Operational control-flow figure removed to save space
@@ -611,7 +611,7 @@ We adopt the following adversarial model for the wireless command channel betwee
 \end{itemize}
 
 \paragraph{Out-of-scope threats}
-Physical compromise of the gateway hardware, side-channel attacks on the cryptographic implementation, and denial-of-service attacks against the BLE radio are considered out of scope. Compromise of an authorised endpoint before command generation (e.g., capturing valid encrypted packets from a compromised client for later replay) is also out of scope; CipherChannel assumes the endpoint is trusted at the time of command creation. Authentication of the user or clinician operating the endpoint is handled by higher-level policies and is not part of the protocol.
+Physical compromise of the gateway hardware, side channel attacks on the cryptographic implementation, and denial-of-service attacks against the BLE radio are considered out of scope. Compromise of an authorised endpoint before command generation (e.g., capturing valid encrypted packets from a compromised client for later replay) is also out of scope; CipherChannel assumes the endpoint is trusted at the time of command creation. Authentication of the user or clinician operating the endpoint is handled by higher-level policies and is not part of the protocol.
 
 \subsection{Cryptographic Primitives}
 
@@ -649,17 +649,17 @@ A CipherChannel packet has 28~bytes of fixed cryptographic overhead: 12~bytes fo
 
 The evaluated implementation passes the complete CipherChannel frame to the BLE host stack and relies on the behaviour provided by the client library, BlueZ, and the GATT implementation, including long-write handling or stack-level segmentation where available. This design choice does not affect the cryptographic validation rule. The gateway applies CipherChannel processing only after receiving a complete encrypted byte buffer. The buffer is then parsed as \texttt{CtrNonce || Ciphertext || Tag}; AES-GCM authentication is verified; counter monotonicity and direction parity are checked; the accepted receive counter is persisted; and only then is the plaintext command forwarded to the runtime interface.
 
-For BLE stacks that do not transparently carry frames larger than the effective ATT payload, CipherChannel can use a simple application-level fragmentation profile above GATT. In this profile, the sender first constructs the complete CipherChannel frame and then splits it into fragments. Each fragment carries a small plaintext reassembly header, for example \texttt{frame\_id}, \texttt{frag\_index}, \texttt{frag\_count}, and \texttt{total\_len}, followed by a fragment of the opaque CipherChannel frame. The receiver buffers fragments with the same \texttt{frame\_id}, rejects duplicate or out-of-range fragment indexes, enforces the configured maximum frame size, and discards incomplete reassembly state after a timeout. No fragment is decrypted or released to the application independently; AES-GCM verification, replay validation, direction validation, and receive-counter persistence are performed only after the full CipherChannel frame has been reassembled.
+For BLE stacks that do not transparently carry frames larger than the effective ATT payload, CipherChannel can use a simple application level fragmentation profile above GATT. In this profile, the sender first constructs the complete CipherChannel frame and then splits it into fragments. Each fragment carries a small plaintext reassembly header, for example \texttt{frame\_id}, \texttt{frag\_index}, \texttt{frag\_count}, and \texttt{total\_len}, followed by a fragment of the opaque CipherChannel frame. The receiver buffers fragments with the same \texttt{frame\_id}, rejects duplicate or out-of-range fragment indexes, enforces the configured maximum frame size, and discards incomplete reassembly state after a timeout. No fragment is decrypted or released to the application independently; AES-GCM verification, replay validation, direction validation, and receive-counter persistence are performed only after the full CipherChannel frame has been reassembled.
 
 To characterise the evaluated BLE path, we performed an MTU/long-write confirmation experiment from the laptop/Bleak client to the Raspberry~Pi/BlueZ gateway. The backend exposed a negotiated ATT MTU of 23~bytes, but the evaluated BlueZ/Bleak path still accepted complete CipherChannel frames larger than the default 20-byte ATT value. Encrypted frames succeeded up to a 400-byte plaintext command, corresponding to a 428-byte CipherChannel frame, while a 512-byte plaintext command, corresponding to a 540-byte encrypted frame, failed.
 
-This result confirms that the evaluated stack can carry the command-sized encrypted frames used in our experiments. It should not be interpreted as a portable guarantee across BLE stacks. The fragmentation profile above provides a compatibility path for heterogeneous mobile operating systems, microcontroller BLE stacks, or larger payloads, but it was not exercised in the reported evaluation.
+This result confirms that the evaluated stack can carry the command sized encrypted frames used in our experiments. It should not be interpreted as a portable guarantee across BLE stacks. The fragmentation profile above provides a compatibility path for heterogeneous mobile operating systems, microcontroller BLE stacks, or larger payloads, but it was not exercised in the reported evaluation.
 
 
 \subsection{Persistent Counter Nonces and Replay Protection}
 \label{sec:counternonce}
 
-CipherChannel uses the AES-GCM nonce as the only freshness and replay-control metadata. Each endpoint maintains two persistent 96-bit counters: one for messages it sends and one recording the highest valid counter it has received from its peer. The state file contains the operational key and both counters and is updated atomically using a temporary file followed by \texttt{os.replace()}, so a crash cannot leave a partially written state file.
+CipherChannel uses the AES-GCM nonce as the only freshness and replay control metadata. Each endpoint maintains two persistent 96-bit counters: one for messages it sends and one recording the highest valid counter it has received from its peer. The state file contains the operational key and both counters and is updated atomically using a temporary file followed by \texttt{os.replace()}, so a crash cannot leave a partially written state file.
 
 The two traffic directions are separated by counter parity. During channel creation, exactly one endpoint is marked as the initiator. The initiator sends only even counter values, while the non-initiator sends only odd counter values:
 
@@ -683,11 +683,11 @@ c > \mathit{ctr}_{recv}
 
 \noindent The receiver then persists $c$ as the new highest received counter \emph{before} returning the plaintext command to the gateway logic. This ordering prevents replay after a crash occurring between successful decryption and command execution. A replayed packet has $c \leq \mathit{ctr}_{recv}$ and is therefore rejected. A packet reflected back to its sender has the wrong parity and is also rejected. A packet modified in transit fails GCM tag verification before any counter update is attempted.
 
-The counter-nonce construction does not require wall-clock stamps, timing windows, sliding replay windows, or an unauthenticated reset transition. Missed packets do not cause permanent desynchronisation because the receiver accepts any higher same-parity counter. The protocol does not, however, acknowledge delivery: an attacker can still suppress BLE packets or cause denial of service. Delivery confirmation and retry policy therefore remain application-layer responsibilities.
+The counter-nonce construction does not require wall clock stamps, timing windows, sliding replay windows, or an unauthenticated reset transition. Missed packets do not cause permanent desynchronisation because the receiver accepts any higher same-parity counter. The protocol does not, however, acknowledge delivery: an attacker can still suppress BLE packets or cause denial of service. Delivery confirmation and retry policy therefore remain application layer responsibilities.
 
 Counter state must never be reset under the same operational key. Reinitialising counters to zero is safe only when a fresh operational key is generated during a new provisioning event. If the same operational key is reused, the endpoint must load the existing persistent state rather than recreate the channel.
 
-Replay-resistant authentication and lightweight rekeying have also been studied for healthcare BLE and IoT-edge settings, further supporting the need for freshness and key-lifecycle mechanisms above the wireless link layer ~\cite{rakshit2025dsekp}.
+Replay resistant authentication and lightweight rekeying have also been studied for healthcare BLE and IoT-edge settings, further supporting the need for freshness and key lifecycle mechanisms above the wireless link layer ~\cite{rakshit2025dsekp}.
 
 \begin{algorithm}[!t]
 \caption{Counter-Nonce CipherChannel Send and Receive}
@@ -729,7 +729,7 @@ protection. The protocol uses two classes of key material:
 
 \begin{itemize}
   \item \textbf{Transport Key} ($K_T$): a static 256-bit pre-shared bootstrap key installed at provisioning time on the gateway and on authorised controller endpoints. $K_T$ is used only to protect the operational key during the provisioning exchange in Section~\ref{sec:keyexchange}; it is not used for normal exoskeleton commands.
-  \item \textbf{Operational Keys} ($K_{S,phone}$ and $K_{S,cane}$): endpoint-specific 256-bit keys used for authenticated encryption of operational command traffic. Each authorised endpoint obtains its own operational key during a physically gated exchange. The gateway maintains separate cipher contexts for the supervisory-client path and the cane-controller path; each context has its own operational key, send counter, receive counter, parity role, and replay state.
+  \item \textbf{Operational Keys} ($K_{S,phone}$ and $K_{S,cane}$): endpoint-specific 256-bit keys used for authenticated encryption of operational command traffic. Each authorised endpoint obtains its own operational key during a physically gated exchange. The gateway maintains separate cipher contexts for the supervisory client path and the cane-controller path; each context has its own operational key, send counter, receive counter, parity role, and replay state.
 \end{itemize}
 
 This separation ensures that BLE pairing success is not sufficient for command authorisation. An accepted command must be protected under the endpoint-specific operational key for its logical channel and must satisfy AEAD verification, counter-monotonicity validation, and direction-parity checks. The packet format is unchanged by endpoint-specific keying because key selection is determined by the GATT characteristic and logical endpoint context rather than by an additional packet field.
@@ -820,11 +820,11 @@ The exchange keeps $K_S$ confidential by wrapping it under AES-256-GCM with $K_T
 The confidentiality of $K_S$ follows from the IND-CCA security of AES-GCM under the temporary provisioning key $K_T$.
 An adversary that does not know $K_T$ can observe the encrypted provisioning response, but cannot recover $K_S$ or modify the ciphertext into another valid response without causing authentication failure.
 The provisioning window is also explicitly bounded: it expires after 60~s, accepts only a single response, and is cleared after \texttt{STOP\_SHARING}.
-Consequently, a captured provisioning ciphertext is not accepted as a fresh provisioning response when the provisioning channel preserves its CipherChannel counter state under $K_T$: replayed provisioning packets fail the same monotonic counter and direction-parity checks as operational packets. The one-shot provisioning window and \texttt{STOP\_SHARING} clearing reduce exposure of the key-transfer characteristic, but replay resistance relies on authenticated encryption together with persistent provisioning-channel counters.
+Consequently, a captured provisioning ciphertext is not accepted as a fresh provisioning response when the provisioning channel preserves its CipherChannel counter state under $K_T$: replayed provisioning packets fail the same monotonic counter and direction-parity checks as operational packets. The one-shot provisioning window and \texttt{STOP\_SHARING} clearing reduce exposure of the key transfer characteristic, but replay resistance relies on authenticated encryption together with persistent provisioning-channel counters.
 
-% BEGIN COMMENTED OUT: Expanded key-exchange property list compressed to save space
+% BEGIN COMMENTED OUT: Expanded key exchange property list compressed to save space
 % \noindent\textbf{Security properties of the exchange.}
-% The key-exchange protocol provides the following guarantees:
+% The key exchange protocol provides the following guarantees:
 %
 % \begin{enumerate}
 %   \item \textbf{Confidentiality of $K_S$}: $K_S$ is never transmitted in
@@ -845,7 +845,7 @@ Consequently, a captured provisioning ciphertext is not accepted as a fresh prov
 %     reinitialisation is permitted only together with a fresh operational key;
 %     otherwise stored counter state must be loaded to avoid AES-GCM nonce reuse.
 % \end{enumerate}
-% END COMMENTED OUT: Expanded key-exchange property list compressed to save space
+% END COMMENTED OUT: Expanded key exchange property list compressed to save space
 
 
 
@@ -861,7 +861,19 @@ If an endpoint loses or corrupts its persistent state, the secure recovery path 
 \section{Reference Implementation}
 \label{sec:impl}
 
-The reference implementation includes a Python/PyCryptodome gateway implementation and an ESP32/mbedTLS cane-endpoint implementation. The packet format is library-independent and is defined by the \texttt{nonce || ciphertext || tag} layout, the 96-bit counter nonce, and the receive-side monotonicity and direction-parity checks. The quantitative BLE latency and adversarial-rejection evaluation reported in this paper focuses on the Python/Bleak client and Python/Raspberry~Pi gateway path. The ESP32 implementation is evaluated only for firmware resource footprint in Section~\ref{sec:esp32-footprint}; full ESP32/mbedTLS interoperability and latency validation are left for extended testing. The reference implementation and experiment artefacts are publicly available under the Apache-2.0 license at \url{https://github.com/thodpap/CipherChannel}.
+The reference implementation includes a Python/PyCryptodome gateway implementation and an ESP32/mbedTLS cane-endpoint implementation. The packet format is library-independent and is defined by the \texttt{nonce || ciphertext || tag} layout, the 96-bit counter nonce, and the receive-side monotonicity and direction-parity checks. The reference implementation and experiment artefacts are publicly available under the Apache-2.0 license at \url{https://github.com/thodpap/CipherChannel}.
+
+\subsection{Implementation Robustness}
+\label{sec:impl-robustness}
+
+The implementation treats CipherChannel state as security-critical shared state rather than as ordinary application metadata. On the Raspberry~Pi gateway, cryptographic contexts, send counters, receive counters, and endpoint-specific key material are protected by Python locks so that BLE callbacks, runtime forwarding threads, and notification paths cannot concurrently mutate replay state. On the ESP32 cane endpoint, the corresponding state transitions are guarded by FreeRTOS synchronization primitives. This prevents concurrent command handling from producing duplicate send counters, stale receive-counter updates, or inconsistent endpoint state.
+
+Crash safe persistence is enforced through ordered state updates. Send counters are made durable before encrypted packets are returned for transmission, preventing AES-GCM nonce reuse after a crash between packet construction and physical delivery. Receive counters are made durable before plaintext commands are released to the gateway logic, preventing a post-crash replay of an already accepted packet. On the Python gateway, state updates are written to a temporary file, flushed with \texttt{fsync}, and committed with atomic rename via \texttt{os.replace()}. This ordering is deliberately conservative: it adds measurable latency, but preserves the replay-safety invariant across process restarts.
+
+The implementation also isolates keys and replay state per logical endpoint. The supervisory client path and the cane controller path use separate operational keys, counters, direction parity roles, and receive state records. As a result, a valid packet from one endpoint context is not accepted as fresh traffic in another endpoint context, even when both communicate with the same gateway during the same operational window.
+
+The cross-platform implementation was designed to keep the protocol independent of a single language or cryptographic library. The gateway path uses Python and PyCryptodome on Raspberry~Pi/BlueZ, while the cane endpoint uses Arduino C++ and mbedTLS on ESP32 with non-volatile storage for persistent state. The evaluation in this paper focuses on the Python/Bleak client and Python/Raspberry~Pi gateway path for BLE latency and adversarial-rejection measurements. The ESP32 implementation is reported for firmware resource footprint in Section~\ref{sec:esp32-footprint}.
+
 
 % ---------------------------------------------------------------
 \section{Experimental Evaluation}
@@ -871,43 +883,43 @@ The reference implementation includes a Python/PyCryptodome gateway implementati
 The evaluation is organised around four research questions.
 
 \begin{itemize}
-  \item \textbf{RQ1 -- Security rejection}: Does CipherChannel reject replay, ciphertext/tag tampering, stale counters, wrong keys, reflection, reordering, and cross-endpoint injection before a command reaches the runtime?
+  \item \textbf{RQ1 -- Security rejection}: Does CipherChannel reject replay, ciphertext/tag tampering, stale counters, wrong keys, reflection, reordering, and cross endpoint injection before a command reaches the runtime?
 
   \item \textbf{RQ2 -- Persistence and provisioning}: Does the protocol preserve replay state through simulated restart and enforce the physical-presence-gated provisioning state machine?
 
-  \item \textbf{RQ3 -- Measured command latency}: Under the tested BLE conditions, what latency is observed for steady-state command/ACK exchange, cold-start operation, key exchange, and distance/obstruction scenarios?
+  \item \textbf{RQ3 -- Measured command latency}: Under the tested BLE conditions, what latency is observed for steady-state command/ACK exchange, cold start operation, key exchange, and distance/obstruction scenarios?
 
   \item \textbf{RQ4 -- Local processing cost}: Is the command path dominated by BLE transport, cryptographic processing, or durable counter persistence?
 \end{itemize}
 
-The experiments deliberately separate protocol validation from BLE transport. Unit and adversarial tests exercise the CipherChannel state machine without relying on radio timing. BLE command-path experiments measure the latency observed by a client communicating with the Raspberry~Pi gateway. Gateway-internal measurements instrument the receive callback to separate packet parsing, freshness validation, AES-GCM authentication/decryption, persistent counter update, JSON parsing, and ACK publication.
+The experiments deliberately separate protocol validation from BLE transport. Unit and adversarial tests exercise the CipherChannel state machine without relying on radio timing. BLE command path experiments measure the latency observed by a client communicating with the Raspberry~Pi gateway. Gateway internal measurements instrument the receive callback to separate packet parsing, freshness validation, AES-GCM authentication/decryption, persistent counter update, JSON parsing, and ACK publication.
 
 \subsection{Experimental Setup}
 
-The evaluation was conducted on a laptop client and a Raspberry~Pi BLE gateway. The client host used a 12th Gen Intel Core i7-12650H processor, Fedora Linux, Python~3.14.5, PyCryptodome~3.23.0, Bleak~3.0.2, BlueZ~5.86, and a USB BLE adapter. The gateway was implemented on a Raspberry~Pi BLE server using \texttt{bless}~0.3.0 and BlueZ~5.86. A Python/Bleak client was used instead of the mobile application in order to obtain repeatable timing measurements over a large number of trials, while preserving the same GATT write path, CipherChannel packet format, gateway validation logic, and command-forwarding behaviour.
+The evaluation was conducted on a laptop client and a Raspberry~Pi BLE gateway. The client host used a 12th Gen Intel Core i7-12650H processor, Fedora Linux, Python~3.14.5, PyCryptodome~3.23.0, Bleak~3.0.2, BlueZ~5.86, and a USB BLE adapter. The gateway was implemented on a Raspberry~Pi BLE server using \texttt{bless}~0.3.0 and BlueZ~5.86. A Python/Bleak client was used instead of the mobile application in order to obtain repeatable timing measurements over a large number of trials, while preserving the same GATT write path, CipherChannel packet format, gateway validation logic, and command forwarding behaviour.
 
 The maximum plaintext command size was 400B, producing a maximum CipherChannel packet size of 428B after adding the 12-byte counter nonce and 16-byte AES-GCM authentication tag. All reported latency values and percentiles were computed consistently across the recorded trials, and confidence intervals are reported where supported by the result artefacts.
 
-The canonical BLE command-path evaluation covers the Python/PyCryptodome implementation, the Raspberry~Pi BLE gateway path, the provisioning-gate state machine, and BLE client-to-gateway command exchange. It does not evaluate C/OpenSSL interoperability, ESP32/mbedTLS interoperability, physical Raspberry~Pi power-cycle recovery, long-duration soak behaviour, or clinical workflow execution. ESP32 firmware resource usage is reported separately in Section~\ref{sec:esp32-footprint} as a footprint measurement, not as an interoperability or latency validation.
+The canonical BLE command path evaluation covers the Python/PyCryptodome implementation, the Raspberry~Pi BLE gateway path, the provisioning-gate state machine, and BLE client-to-gateway command exchange. It does not evaluate C/OpenSSL interoperability, ESP32/mbedTLS interoperability, physical Raspberry~Pi power-cycle recovery, long-duration soak behaviour, or clinical workflow execution. ESP32 firmware resource usage is reported separately in Section~\ref{sec:esp32-footprint} as a footprint measurement, not as an interoperability or latency validation.
 
 \subsection{Security Analysis Against Known BLE Attacks}
 \label{sec:attackcoverage}
 
-The BLE attacks discussed in Section~\ref{sec:background} motivate the need for a command-authentication boundary above the BLE link layer. CipherChannel does not attempt to repair the underlying BLE protocol or make the BLE stack immune to downgrade, impersonation, reconnection, injection, or implementation-level attacks. Instead, it reduces the security dependence placed on BLE by requiring every command to satisfy an independent application-layer acceptance rule before it is forwarded to the exoskeleton runtime.
+The BLE attacks discussed in Section~\ref{sec:background} motivate the need for a command authentication boundary above the BLE link layer. CipherChannel does not attempt to repair the underlying BLE protocol or make the BLE stack immune to downgrade, impersonation, reconnection, injection, or implementation-level attacks. Instead, it reduces the security dependence placed on BLE by requiring every command to satisfy an independent application layer acceptance rule before it is forwarded to the exoskeleton runtime.
 
-Attacks such as KNOB/TOPS~\cite{antonioli2020knob,zhang2020downgrade}, BIAS~\cite{antonioli2020bias}, BLESA~\cite{wu2020blesa}, SweynTooth~\cite{garbelini2020sweyntooth}, InjectaBLE~\cite{cayre2021injectable}, BLUFFS~\cite{antonioli2023bluffs}, and pairing downgrade or method-confusion attacks~\cite{tschirschnitz2021method} affect different parts of the Bluetooth security model, including key negotiation, peer authentication, reconnection, frame injection, session-key derivation, and BLE-stack robustness. In the CipherChannel design, however, BLE connection state is not sufficient for command authorisation. A received packet is accepted only if it authenticates under the operational key, carries a strictly fresh counter nonce, satisfies the expected direction parity, and causes the persistent receive counter to be updated before plaintext command release.
+Attacks such as KNOB/TOPS~\cite{antonioli2020knob,zhang2020downgrade}, BIAS~\cite{antonioli2020bias}, BLESA~\cite{wu2020blesa}, SweynTooth~\cite{garbelini2020sweyntooth}, InjectaBLE~\cite{cayre2021injectable}, BLUFFS~\cite{antonioli2023bluffs}, and pairing downgrade or method-confusion attacks~\cite{tschirschnitz2021method} affect different parts of the Bluetooth security model, including key negotiation, peer authentication, reconnection, frame injection, session-key derivation, and BLE stack robustness. In the CipherChannel design, however, BLE connection state is not sufficient for command authorisation. A received packet is accepted only if it authenticates under the operational key, carries a strictly fresh counter nonce, satisfies the expected direction parity, and causes the persistent receive counter to be updated before plaintext command release.
 
-This design means that a weakened or spoofed BLE connection may still deliver traffic to the gateway, but it cannot by itself produce a valid exoskeleton command. Tampered packets fail AES-GCM authentication, replayed packets fail the monotonic counter check, reflected packets fail the direction-parity rule, and packets generated without the operational key fail tag verification. The remaining residual risks are denial of service, BLE-stack crashes, physical compromise, endpoint compromise before encryption, and platform-level implementation vulnerabilities. These risks are outside the cryptographic acceptance rule and require additional system hardening, monitoring, and deployment controls.
+This design means that a weakened or spoofed BLE connection may still deliver traffic to the gateway, but it cannot by itself produce a valid exoskeleton command. Tampered packets fail AES-GCM authentication, replayed packets fail the monotonic counter check, reflected packets fail the direction-parity rule, and packets generated without the operational key fail tag verification. The remaining residual risks are denial of service, BLE stack crashes, physical compromise, endpoint compromise before encryption, and platform-level implementation vulnerabilities. These risks are outside the cryptographic acceptance rule and require additional system hardening, monitoring, and deployment controls.
 
 
 
 \subsection{Protocol Correctness and Provisioning Gate}
 
-Table~\ref{tab:correctness} summarises the protocol-correctness tests. The tested cases cover packet-length invariants, counter behaviour, malformed-input rejection, and a protocol test vector. All 52 tests passed. The results confirm that packet overhead is exactly 28\,B for plaintext sizes from 0 to 400\,B, ciphertext length equals plaintext length, the nonce is encoded as a 12-byte little-endian counter, direction parity is enforced, and the counter-exhaustion guard triggers before nonce reuse.
+Table~\ref{tab:correctness} summarises the protocol correctness tests. The tested cases cover packet-length invariants, counter behaviour, malformed-input rejection, and a protocol test vector. All 52 tests passed. The results confirm that packet overhead is exactly 28\,B for plaintext sizes from 0 to 400\,B, ciphertext length equals plaintext length, the nonce is encoded as a 12-byte little-endian counter, direction parity is enforced, and the counter-exhaustion guard triggers before nonce reuse.
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.15}
-\caption{Protocol-Correctness Test Results}
+\caption{Protocol Correctness Test Results}
 \label{tab:correctness}
 \centering
 \scriptsize
@@ -931,6 +943,10 @@ The provisioning-gate suite passed 28/28 tests. These tests cover closed-gate re
 
 Table~\ref{tab:adversarial} summarises the adversarial-rejection suite. Across 534 replay, tampering, stale-counter, wrong-key, reflection, and reordering attempts, the system produced zero unexpected acceptances. In the reordering experiment, packets with counters 2, 6, and 8 were correctly accepted as fresh, while the later delivery of counter 4 after counter 6 was correctly rejected as stale. Thus, the test confirms that CipherChannel permits benign loss/reordering only when the received counter remains fresh, and rejects stale delivery once the receive counter has advanced.
 
+Endpoint isolation was also validated by injecting packets generated for one logical endpoint into the other endpoint path. The gateway rejected these cross endpoint attempts before runtime forwarding because each endpoint context uses separate operational key material, replay state, and direction-parity expectations.
+
+Together with the distance and obstruction experiments reported below, these results indicate that CipherChannel did not introduce additional command acceptance failure modes beyond those already caused by the underlying BLE connection. Encrypted packets were either accepted after successful authentication and freshness validation, or rejected deterministically for a protocol-level reason. Range related failures were observed as BLE connection, write, notification, or ACK-read failures rather than as ambiguous CipherChannel accept/reject behaviour.
+
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.15}
 \setlength{\tabcolsep}{3pt} % Reduces white space between columns
@@ -947,7 +963,7 @@ Exact replay, BLE end-to-end & 30 & 0 & 30 & 0 & Replay was rejected over the me
 Replay after BLE reconnect & 30 & 0 & 30 & 0 & Reconnect did not reset receive-counter state. \\
 Replay after simulated process restart & 30 & 0 & 30 & 0 & Reloaded state rejected post-restart replay. \\
 Ciphertext/tag tampering & 120 & 0 & 120 & 0 & Modified packets failed authentication. \\
-Wrong key / cross-endpoint variants & 4 & 0 & 4 & 0 & Wrong-key traffic did not authenticate. \\
+Wrong key / cross endpoint variants & 4 & 0 & 4 & 0 & Wrong-key traffic did not authenticate. \\
 Direction reflection & 100 & 0 & 100 & 0 & Wrong parity rejected reflected packets. \\
 Reordering 2$\rightarrow$6$\rightarrow$4$\rightarrow$8 & 120 & 90 & 30 & 0 & Fresh packets accepted; stale packet 4 rejected. \\
 \midrule
@@ -956,13 +972,13 @@ Reordering 2$\rightarrow$6$\rightarrow$4$\rightarrow$8 & 120 & 90 & 30 & 0 & Fre
 \end{tabular}
 \end{table}
 
-A separate endpoint-isolation experiment tested whether packets from one logical endpoint path could be accepted by the other. The gateway performed cane and phone key exchange, provisioning distinct operational keys for the two logical endpoint paths. The test then injected 30 phone-encrypted packets into the cane channel and 30 cane-encrypted packets into the phone channel. All 60 cross-endpoint injections were rejected, and one valid command per channel was accepted as a sanity check. In this canonical run, cross-endpoint packets failed AES-GCM authentication because they were protected under the wrong endpoint-specific operational key. This result supports endpoint isolation for the tested gateway configuration.
+A separate endpoint-isolation experiment tested whether packets from one logical endpoint path could be accepted by the other. The gateway performed cane and phone key exchange, provisioning distinct operational keys for the two logical endpoint paths. The test then injected 30 phone-encrypted packets into the cane channel and 30 cane-encrypted packets into the phone channel. All 60 cross endpoint injections were rejected, and one valid command per channel was accepted as a sanity check. In this canonical run, cross endpoint packets failed AES-GCM authentication because they were protected under the wrong endpoint-specific operational key. This result supports endpoint isolation for the tested gateway configuration.
 
-\subsection{Steady-State and Cold-Start Command Latency}
+\subsection{Steady-State and Cold Start Command Latency}
 
-The latency experiments distinguish the normal steady-state case from cold-start operation. In steady state, the BLE connection and CipherChannel state have already been established; the client repeatedly encrypts a \texttt{STAND\_UP} command, writes it over GATT, and waits for the ACK. In cold-start operation, each trial repeats scanning, connection, key exchange, command encryption, BLE write, and ACK waiting.
+The latency experiments distinguish the normal steady-state case from cold start operation. In steady state, the BLE connection and CipherChannel state have already been established; the client repeatedly encrypts a \texttt{STAND\_UP} command, writes it over GATT, and waits for the ACK. In cold start operation, each trial repeats scanning, connection, key exchange, command encryption, BLE write, and ACK waiting.
 
-Table~\ref{tab:steady_latency} reports the steady-state result. Across 1000 trials, all commands succeeded. The median client-observed command-to-ACK latency was 169.6\,ms, with p95 of 170.7\,ms and p99 of 214.7\,ms. Client-side AES-GCM encryption had 0.215\,ms median latency and 0.408\,ms p99 latency, whereas BLE write and ACK waiting dominated the observed command path.
+Table~\ref{tab:steady_latency} reports the steady-state result. Across 1000 trials, all commands succeeded. The median client-observed command to-ACK latency was 169.6\,ms, with p95 of 170.7\,ms and p99 of 214.7\,ms. Client-side AES-GCM encryption had 0.215\,ms median latency and 0.408\,ms p99 latency, whereas BLE write and ACK waiting dominated the observed command path.
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.15}
@@ -983,12 +999,12 @@ Command$\rightarrow$ACK & 170.713 & 169.596 & 7.068 & 170.743 & 214.709 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:coldstart} reports the cold-start result. Across 500 trials, all commands succeeded. The total cold-start path had 4.62\,s median latency and 10.38\,s p99 latency. The command-to-ACK part of the same cold-start trials had 179.5\,ms median and 224.9\,ms p99 latency. The difference shows that scan, connection establishment, and key exchange dominate cold-start operation, while the encrypted command/ACK exchange remains in the same order of magnitude as the steady-state case.
+Table~\ref{tab:coldstart} reports the cold start result. Across 500 trials, all commands succeeded. The total cold start path had 4.62\,s median latency and 10.38\,s p99 latency. The command to-ACK part of the same cold start trials had 179.5\,ms median and 224.9\,ms p99 latency. The difference shows that scan, connection establishment, and key exchange dominate cold start operation, while the encrypted command/ACK exchange remains in the same order of magnitude as the steady-state case.
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.15}
 \setlength{\tabcolsep}{3pt}
-\caption{Cold-Start Provisioning and First-Command Latency (ms, $N=500$)}
+\caption{Cold Start Provisioning and First-Command Latency (ms, $N=500$)}
 \label{tab:coldstart}
 \centering
 \scriptsize
@@ -1008,13 +1024,13 @@ Total & 5050.1 & 4624.1 & 1502.0 & 7774.5 & 10384.6 \\
 \end{tabular}
 \end{table}
 
-\subsection{Gateway-Internal Processing Cost}
+\subsection{Gateway Internal Processing Cost}
 
-Table~\ref{tab:server_processing} reports gateway-internal processing for 1000 steady-state commands. The measured interval begins inside the GATT characteristic-write callback and ends when the ACK characteristic value has been set. AES-256-GCM authentication and decryption had 1.70\,ms median and 1.98\,ms p99 latency. Freshness and direction-parity validation were below 0.005\,ms at p99. However, the durable receive-counter write had 14.21\,ms median and 101.87\,ms p99 latency, making persistence the dominant local gateway cost.
+Table~\ref{tab:server_processing} reports gateway internal processing for 1000 steady-state commands. The measured interval begins inside the GATT characteristic-write callback and ends when the ACK characteristic value has been set. AES-256-GCM authentication and decryption had 1.70\,ms median and 1.98\,ms p99 latency. Freshness and direction-parity validation were below 0.005\,ms at p99. However, the durable receive-counter write had 14.21\,ms median and 101.87\,ms p99 latency, making persistence the dominant local gateway cost.
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.12}
-\caption{Gateway-Side Receive-to-ACK Processing Breakdown (ms, $N=1000$)}
+\caption{Gateway Side Receive-to-ACK Processing Breakdown (ms, $N=1000$)}
 \label{tab:server_processing}
 \centering
 \resizebox{\columnwidth}{!}{%
@@ -1035,16 +1051,16 @@ ACK characteristic update & 0.4918 & 0.4910 & 0.0489 & 0.5629 & 0.5907 \\
 }
 \end{table}
 
-This result changes the interpretation of gateway-side overhead. CipherChannel cryptographic processing is not the dominant cost, but crash-safe persistence is not negligible when implemented with synchronous state-file updates. The result supports the protocol's fail-closed persistence rule, but it also shows that production deployments should engineer durable counter storage carefully.
+This result changes the interpretation of gateway side overhead. CipherChannel cryptographic processing is not the dominant cost, but crash safe  persistence is not negligible when implemented with synchronous state-file updates. The result supports the protocol's fail closed persistence rule, but it also shows that production deployments should engineer durable counter storage carefully.
 
 \subsection{Key Exchange Latency}
 
-Table~\ref{tab:key_exchange_latency} reports 500 key-exchange trials. Each trial includes scan, connection, \texttt{REQUEST\_KEY} write, server processing, client decryption of the operational key, and client channel-state initialisation. All 500 trials succeeded. The key-exchange portion from request write to decrypted key had 443.5\,ms median latency and 937.9\,ms p99 latency. Client-side decryption and state initialisation were sub-millisecond at p99; the measured key-exchange latency is therefore dominated by BLE request/response timing and server-side publication of the encrypted key material. Physical button latency is excluded because the benchmark provisioning gate was used.
+Table~\ref{tab:key_exchange_latency} reports 500 key exchange trials. Each trial includes scan, connection, \texttt{REQUEST\_KEY} write, server processing, client decryption of the operational key, and client channel-state initialisation. All 500 trials succeeded. The key exchange portion from request write to decrypted key had 443.5\,ms median latency and 937.9\,ms p99 latency. Client-side decryption and state initialisation were sub-millisecond at p99; the measured key exchange latency is therefore dominated by BLE request/response timing and server-side publication of the encrypted key material. Physical button latency is excluded because the benchmark provisioning gate was used.
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.15}
 \setlength{\tabcolsep}{3pt}
-\caption{Key-Exchange Latency (ms, $N=500$)}
+\caption{Key Exchange Latency (ms, $N=500$)}
 \label{tab:key_exchange_latency}
 \centering
 \scriptsize
@@ -1086,7 +1102,7 @@ Two distance experiments were conducted. The first repeated full reconnect opera
 \end{tabular}%
 }
 \end{table}
-The second distance experiment kept an established connection open and measured sustained write/ACK latency across 1\,m, 2\,m, 4\,m, and 7\,m-wall conditions, with 500 trials per condition. All 2000 trials succeeded. The median command-to-ACK latency remained approximately 169.3--169.4\,ms across all conditions, while the 7\,m-wall condition increased the mean and tail latency, reaching 259.6\,ms p99 and 350.5\,ms maximum latency.
+The second distance experiment kept an established connection open and measured sustained write/ACK latency across 1\,m, 2\,m, 4\,m, and 7\,m-wall conditions, with 500 trials per condition. All 2000 trials succeeded. The median command to-ACK latency remained approximately 169.3--169.4\,ms across all conditions, while the 7\,m-wall condition increased the mean and tail latency, reaching 259.6\,ms p99 and 350.5\,ms maximum latency.
 
 \begin{table}[!t]
 \renewcommand{\arraystretch}{1.12}
@@ -1108,9 +1124,9 @@ The second distance experiment kept an established connection open and measured 
 \end{tabular}
 \end{table}
 
-A final exploratory run was then performed to observe behaviour near the edge of the tested BLE range. In this run, the client started at approximately 7m and progressively moved farther from the gateway until failure, reaching approximately 10-11m through two walls near the first connection-loss event. The first 43 commands were acknowledged successfully. Trial 44 completed the GATT write but failed while reading the ACK, and trial 45 reported connection loss. Subsequent logged attempts occurred after the connection had already been lost and are therefore not counted as independent command-delivery trials.
+A final exploratory run was then performed to observe behaviour near the edge of the tested BLE range. In this run, the client started at approximately 7m and progressively moved farther from the gateway until failure, reaching approximately 10-11m through two walls near the first connection-loss event. The first 43 commands were acknowledged successfully. Trial 44 completed the GATT write but failed while reading the ACK, and trial 45 reported connection loss. Subsequent logged attempts occurred after the connection had already been lost and are therefore not counted as independent command delivery trials.
 
-These results refine the interpretation of the distance experiments. CipherChannel maintained reliable command delivery in the fixed 1--7m conditions and remained operational during the progressive two-wall walk-back until the edge of the tested BLE range. Near that edge, latency variance increased substantially and the first observed failure occurred as an ACK read error, followed by connection loss at approximately 10m through two walls. This indicates that the limiting factor in the tested configuration was BLE link availability rather than CipherChannel authentication or replay validation.
+These results refine the interpretation of the distance experiments. CipherChannel maintained reliable command delivery in the fixed 1--7m conditions and remained operational during the progressive two wall walk-back until the edge of the tested BLE range. Near that edge, latency variance increased substantially and the first observed failure occurred as an ACK read error, followed by connection loss at approximately 10m through two walls. This indicates that the limiting factor in the tested configuration was BLE link availability rather than CipherChannel authentication or replay validation.
 
 \subsection{ESP32 Resource Footprint}
 \label{sec:esp32-footprint}
@@ -1147,37 +1163,37 @@ Minimum free stack during operation & 5,448~B \\
 
 \subsection{Interpretation of the Main Results}
 
-The evaluation supports the central claim of the paper: BLE connection establishment should not be treated as command authorisation for a safety-relevant exoskeleton command channel. Under the tested conditions, CipherChannel rejected all replay, tampering, stale-counter, wrong-key, reflection, and cross-endpoint injection attempts before runtime forwarding. The results therefore support the protocol's admission-control argument: an attacker who can observe, replay, reorder, or modify BLE traffic still lacks a sufficient condition for command acceptance unless the packet also authenticates under the correct operational key and carries a fresh counter nonce with the expected direction parity.
+The evaluation supports the central claim of the paper: BLE connection establishment should not be treated as command authorisation for a safety relevant exoskeleton command channel. Under the tested conditions, CipherChannel rejected all replay, tampering, stale-counter, wrong-key, reflection, and cross endpoint injection attempts before runtime forwarding. The results therefore support the protocol's admission-control argument: an attacker who can observe, replay, reorder, or modify BLE traffic still lacks a sufficient condition for command acceptance unless the packet also authenticates under the correct operational key and carries a fresh counter nonce with the expected direction parity.
 
-The latency results also support the practical feasibility claim, but with a narrower interpretation than a general real-time-control claim. CipherChannel is appropriate for sparse supervisory commands such as \texttt{STAND\_UP}, \texttt{START\_WALKING}, \texttt{TAKE\_STEP}, and \texttt{STOP\_ACTION}. It is not evaluated as a high-rate joint-control or servo-loop security mechanism. In steady-state BLE operation, the median command-to-ACK latency was 169.6\,ms and the p99 latency was 214.7\,ms. These values are in the range of simple human reaction-time measurements often reported for visual and auditory stimuli~\cite{kosinski2013reaction}, but this comparison should be interpreted cautiously. It supports plausibility for clinician- or user-initiated supervisory control; it does not establish suitability for closed-loop motion control.
+The latency results also support the practical feasibility claim, but with a narrower interpretation than a general real-time-control claim. CipherChannel is appropriate for sparse supervisory commands such as \texttt{STAND\_UP}, \texttt{START\_WALKING}, \texttt{TAKE\_STEP}, and \texttt{STOP\_ACTION}. It is not evaluated as a high-rate joint-control or servo-loop security mechanism. In steady-state BLE operation, the median command to-ACK latency was 169.6\,ms and the p99 latency was 214.7\,ms. These values are in the range of simple human reaction-time measurements often reported for visual and auditory stimuli~\cite{kosinski2013reaction}, but this comparison should be interpreted cautiously. It supports plausibility for clinician- or user-initiated supervisory control; it does not establish suitability for closed-loop motion control.
 
 \subsection{Latency Trade-offs}
 
-The main latency trade-off is not AES-GCM encryption itself. Client-side encryption had 0.215\,ms median latency in the steady-state experiment, and gateway-side AES-256-GCM authentication and decryption had 1.70\,ms median latency. This is consistent with prior Raspberry~Pi AES-performance work showing that AES-family operations can be practical on Raspberry~Pi-class platforms, while still remaining sensitive to implementation choices and workload characteristics~\cite{riddle2023aespie}. The command-to-ACK path was dominated by BLE write/ACK timing and by local receive-counter persistence on the gateway. The persistence result is particularly important: the fsync-based receive-counter update had 14.21\,ms median and 101.87\,ms p99 latency. This is the cost of enforcing crash-safe replay protection with synchronous durable state updates.
+The main latency trade-off is not AES-GCM encryption itself. Client-side encryption had 0.215\,ms median latency in the steady-state experiment, and gateway side AES-256-GCM authentication and decryption had 1.70\,ms median latency. This is consistent with prior Raspberry~Pi AES-performance work showing that AES-family operations can be practical on Raspberry~Pi-class platforms, while still remaining sensitive to implementation choices and workload characteristics~\cite{riddle2023aespie}. The command to-ACK path was dominated by BLE write/ACK timing and by local receive-counter persistence on the gateway. The persistence result is particularly important: the fsync-based receive-counter update had 14.21\,ms median and 101.87\,ms p99 latency. This is the cost of enforcing crash safe  replay protection with synchronous durable state updates.
 
-This trade-off is acceptable for the tested supervisory command model, but it is not cost-free. A production implementation should choose persistent storage deliberately. For example, it may use hardware-backed monotonic counters, journaled key-value storage, wear-aware non-volatile memory, or a carefully audited batching policy. Any optimisation must preserve the protocol invariant that accepted receive counters are made durable before plaintext commands are released to the runtime. Weakening this ordering would reduce latency at the cost of post-crash replay safety.
+This trade-off is acceptable for the tested supervisory command model, but it is not cost-free. A production implementation should choose persistent storage deliberately. For example, it may use hardware-backed monotonic counters, journaled key value storage, wear-aware non-volatile memory, or a carefully audited batching policy. Any optimisation must preserve the protocol invariant that accepted receive counters are made durable before plaintext commands are released to the runtime. Weakening this ordering would reduce latency at the cost of post-crash replay safety.
 
 \subsection{Physical-Presence Requirement as a Safety Control}
 
 The provisioning gate is intended as an operational safety control in addition to BLE pairing. Before an endpoint can obtain operational key material, an authorised operator must explicitly open a short provisioning window, for example through a physical button press on the middleware device. This limits unattended or remote enrolment and provides an out-of-band authorisation step suited to a clinical or supervised exoskeleton setting. The implemented tests validate the software state machine associated with this gate, including one-shot provisioning windows, timeout handling, endpoint separation, and rejection when the gate is closed. Full validation of the physical button interaction remains part of hardware-in-the-loop system testing.
 
 \subsection{Distance, Obstruction, and Deployment Constraints}
-The distance results suggest that CipherChannel's cryptographic framing was not the limiting factor in the tested deployment envelope. Across the fixed-distance line-of-sight and wall-obstructed conditions, command admission remained reliable and median command-to-ACK latency stayed in the same operating range. Obstruction mainly affected variance and tail latency rather than the median path. The progressive two-wall walk-back run further indicates that the practical limit was BLE link quality: the system continued to complete authenticated command/ACK exchanges until the connection eventually degraded and failed near the edge of coverage. Therefore, deployment constraints for this implementation are dominated by BLE radio conditions, wall attenuation, and connection stability, rather than by AES-GCM processing or protocol framing overhead.
+The distance results suggest that CipherChannel's cryptographic framing was not the limiting factor in the tested deployment envelope. Across the fixed-distance line-of-sight and wall obstructed conditions, command admission remained reliable and median command to-ACK latency stayed in the same operating range. Obstruction mainly affected variance and tail latency rather than the median path. The progressive two wall walk-back run further indicates that the practical limit was BLE link quality: the system continued to complete authenticated command/ACK exchanges until the connection eventually degraded and failed near the edge of coverage. Therefore, deployment constraints for this implementation are dominated by BLE radio conditions, wall attenuation, and connection stability, rather than by AES-GCM processing or protocol framing overhead.
 
 \subsection{Limitations}
 \label{sec:limitations}
 
-The evaluated prototype has three main limitations. First, although the evaluated phone and cane paths use endpoint-specific operational keys and separate replay state, compromise of an authorised endpoint would still expose that endpoint's operational key and allow impersonation of that endpoint until reprovisioning. Production deployments should therefore combine endpoint-specific keys with hardware-backed key storage, revocation, and audited reprovisioning procedures. Second, the bootstrap transport key $K_T$ is static. Although it is used only during provisioning, a stronger design should replace it with an ephemeral authenticated key-establishment mechanism, such as ECDH with device certificates or hardware-bound credentials. Third, CipherChannel provides command authentication, integrity, confidentiality, replay protection, and crash-safe counter persistence, but it does not address denial-of-service attacks such as radio jamming, GATT flooding, or gateway resource exhaustion. These availability attacks remain outside the present threat model.
+The evaluated prototype has three main limitations. First, although the evaluated phone and cane paths use endpoint-specific operational keys and separate replay state, compromise of an authorised endpoint would still expose that endpoint's operational key and allow impersonation of that endpoint until reprovisioning. Production deployments should therefore combine endpoint-specific keys with hardware-backed key storage, revocation, and audited reprovisioning procedures. Second, the bootstrap transport key $K_T$ is static. Although it is used only during provisioning, a stronger design should replace it with an ephemeral authenticated key establishment mechanism, such as ECDH with device certificates or hardware-bound credentials. Third, CipherChannel provides command authentication, integrity, confidentiality, replay protection, and crash safe  counter persistence, but it does not address denial-of-service attacks such as radio jamming, GATT flooding, or gateway resource exhaustion. These availability attacks remain outside the present threat model.
 
 \subsection{Regulatory Alignment}
 \label{sec:regulatory}
 
-CipherChannel is not a complete regulatory compliance framework, but it addresses protocol-level concerns that are relevant to current medical-device cybersecurity expectations. FDA's 2023 guidance identifies secure development, threat modelling, SBOM documentation, vulnerability management, and cryptographic protection among the cybersecurity considerations for medical-device submissions~\cite{fda2023guidance}. IEC~81001-5-1:2021 and IEC~TR~60601-4-5:2021 provide lifecycle and technical-security guidance for health software and medical electrical equipment~\cite{iec81001,iec60601_4_5}. Within this narrower scope, CipherChannel contributes an application-layer communication control based on AES-256-GCM, persistent replay protection, endpoint isolation, and physical-presence-gated key provisioning before commands reach the exoskeleton runtime.
+CipherChannel is not a complete regulatory compliance framework, but it addresses protocol level concerns that are relevant to current medical-device cybersecurity expectations. FDA's 2023 guidance identifies secure development, threat modelling, SBOM documentation, vulnerability management, and cryptographic protection among the cybersecurity considerations for medical-device submissions~\cite{fda2023guidance}. IEC~81001-5-1:2021 and IEC~TR~60601-4-5:2021 provide lifecycle and technical-security guidance for health software and medical electrical equipment~\cite{iec81001,iec60601_4_5}. Within this narrower scope, CipherChannel contributes an application layer communication control based on AES-256-GCM, persistent replay protection, endpoint isolation, and physical-presence-gated key provisioning before commands reach the exoskeleton runtime.
 
 \subsection{Future Work}
 \label{sec:futurework}
 
-Future work will extend CipherChannel in four directions. First, the provisioning design should be strengthened by replacing the static bootstrap key with authenticated ephemeral key establishment, endpoint-specific operational keys, and hardware-backed key storage on the gateway and controller devices. Second, the BLE transport layer should be made more portable by adding explicit application-level fragmentation and reassembly above GATT, so that CipherChannel frames are not dependent on stack-specific long-write behaviour in BlueZ, mobile operating systems, or microcontroller BLE implementations. Third, availability and resilience should be evaluated under adversarial radio and protocol conditions, including GATT flooding, packet suppression, repeated reconnect attempts, and multi-endpoint contention, with explicit timeout, retry, and fail-safe policies. Fourth, the protocol should be validated in longer clinical-style workflows with multiple users, repeated provisioning events, endpoint replacement, and realistic supervisory command sequences, so that the cryptographic boundary can be evaluated together with usability, operational safety, and medical-device deployment constraints.
+Future work will extend CipherChannel in four directions. First, the provisioning design should be strengthened by replacing the static bootstrap key with authenticated ephemeral key establishment, endpoint-specific operational keys, and hardware-backed key storage on the gateway and controller devices. Second, the BLE transport layer should be made more portable by adding explicit application level fragmentation and reassembly above GATT, so that CipherChannel frames are not dependent on stack-specific long-write behaviour in BlueZ, mobile operating systems, or microcontroller BLE implementations. Third, availability and resilience should be evaluated under adversarial radio and protocol conditions, including GATT flooding, packet suppression, repeated reconnect attempts, and multi-endpoint contention, with explicit timeout, retry, and fail safe policies. Fourth, the protocol should be validated in longer clinical-style workflows with multiple users, repeated provisioning events, endpoint replacement, and realistic supervisory command sequences, so that the cryptographic boundary can be evaluated together with usability, operational safety, and medical-device deployment constraints.
 
 
 
@@ -1185,7 +1201,7 @@ Future work will extend CipherChannel in four directions. First, the provisionin
 \label{sec:conclusion}
 % ---------------------------------------------------------------
 
-This paper presented CipherChannel, an application-layer authenticated-encryption protocol for securing BLE-based command and control of a medical lower-limb exoskeleton. By combining AES-256-GCM, persistent counter nonces, replay protection, endpoint isolation, and physically gated key provisioning, CipherChannel separates BLE connectivity from actual command authorisation. The evaluation showed that the protocol correctly rejected replay, tampering, stale-counter, wrong-key, reflection, reordering, and cross-endpoint injection attempts, while maintaining low steady-state command-to-ACK latency for encrypted \texttt{STAND\_UP} commands. These results suggest that CipherChannel can provide a practical replay-resistant security boundary for sparse supervisory exoskeleton commands without modifying the proprietary runtime.
+This paper presented CipherChannel, an application layer authenticated-encryption protocol for securing BLE based command and control of a medical lower limb exoskeleton. By combining AES-256-GCM, persistent counter nonces, replay protection, endpoint isolation, and physically gated key provisioning, CipherChannel separates BLE connectivity from actual command authorisation. The evaluation showed that the protocol correctly rejected replay, tampering, stale-counter, wrong-key, reflection, reordering, and cross endpoint injection attempts, while maintaining low steady-state command to-ACK latency for encrypted \texttt{STAND\_UP} commands. These results suggest that CipherChannel can provide a practical replay resistant security boundary for sparse supervisory exoskeleton commands without modifying the proprietary runtime.
 
 % ---------------------------------------------------------------
 % ACKNOWLEDGMENT
@@ -1241,7 +1257,7 @@ H.~Rakshit, R.~Bhandari, and S.~Banerjee, ``Lightweight Session-Key Rekeying Fra
 
 
 \bibitem{baud2021review}
-R.~Baud, A.~R.~Manzoori, A.~Ijspeert, and M.~Bouri, ``Review of Control Strategies for Lower-Limb Exoskeletons to Assist Gait,'' \emph{Journal of NeuroEngineering and Rehabilitation}, vol.~18, art.~119, 2021, doi: \url{https://doi.org/10.1186/s12984-021-00906-3}.
+R.~Baud, A.~R.~Manzoori, A.~Ijspeert, and M.~Bouri, ``Review of Control Strategies for lower limb Exoskeletons to Assist Gait,'' \emph{Journal of NeuroEngineering and Rehabilitation}, vol.~18, art.~119, 2021, doi: \url{https://doi.org/10.1186/s12984-021-00906-3}.
 
 \bibitem{tucker2015review}
 M.~R.~Tucker, J.~Olivier, A.~Pagel, H.~Bleuler, M.~Bouri, O.~Lambercy, J.~d.~R.~Millán, R.~Riener, H.~Vallery, and R.~Gassert, ``Control Strategies for Active Lower Extremity Prosthetics and Orthotics: A Review,'' \emph{Journal of NeuroEngineering and Rehabilitation}, vol.~12, art.~1, 2015, doi: \url{https://doi.org/10.1186/1743-0003-12-1}.
