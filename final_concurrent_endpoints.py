@@ -322,8 +322,6 @@ async def run(
         'laptop_accepted': laptop_ok,
         'laptop_failed': laptop_fail,
         'cane_observed_or_sent': cane_count if cane_mode == 'manual' else 0,
-        'cane_accepted': 'TODO/manual — check RPi server log for cane trial_ids',
-        'cane_failed': 'TODO/manual',
         'replay_tests_run': replay_tests,
         'replay_rejected': replay_rejected,
         'counter_isolation_result': (

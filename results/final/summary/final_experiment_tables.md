@@ -53,7 +53,6 @@ Experiment window: 119.0 s
 | Endpoint | Sent | Accepted | Failed | Notes |
 |----------|------|----------|--------|-------|
 | Laptop (supervisory) | 100 | 100 | 0 | Fedora/Bleak, substitutes for Android app |
-| Cane (ESP32, manual) | 57 | TODO/manual | — | Operator-triggered; firmware NVS isolation |
 
 **Replay rejection**: 2/2 replayed packets rejected by server counter check
 

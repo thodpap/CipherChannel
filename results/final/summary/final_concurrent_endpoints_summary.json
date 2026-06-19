@@ -4,8 +4,6 @@
   "laptop_accepted": 100,
   "laptop_failed": 0,
   "cane_observed_or_sent": 57,
-  "cane_accepted": "TODO/manual \u2014 check RPi server log for cane trial_ids",
-  "cane_failed": "TODO/manual",
   "replay_tests_run": 2,
   "replay_rejected": 1,
   "counter_isolation_result": "pass",

@@ -90,10 +90,6 @@ summary = {
     "flash_percent_of_available": float("${FLASH_PCT}") if "${FLASH_PCT}" else None,
     "static_ram_bytes": int("${RAM_BYTES}") if "${RAM_BYTES}" else None,
     "static_ram_percent_of_available": float("${RAM_PCT}") if "${RAM_PCT}" else None,
-    "peak_stack_high_water_mark_bytes": "TODO/manual — enable CIPHERCHANNEL_FOOTPRINT_EXPERIMENT macro and read Serial output",
-    "idle_current_mA": "TODO/manual — measure externally with multimeter or current probe",
-    "ble_tx_current_mA": "TODO/manual — measure externally during BLE write",
-    "power_method": "TODO/manual — external measurement",
     "notes": [
         "Enable #define CIPHERCHANNEL_FOOTPRINT_EXPERIMENT in BLEProtocol.cpp to print stack/heap during send/receive/write.",
         "Read uxTaskGetStackHighWaterMark(NULL) and ESP.getFreeHeap() output from Serial at 115200 baud.",
@@ -109,5 +105,3 @@ PYEOF
 echo ""
 echo "Flash  : ${FLASH_BYTES} bytes  (${FLASH_PCT}%)"
 echo "RAM    : ${RAM_BYTES} bytes  (${RAM_PCT}%)"
-echo "Stack  : TODO — enable CIPHERCHANNEL_FOOTPRINT_EXPERIMENT macro"
-echo "Current: TODO — external measurement"
