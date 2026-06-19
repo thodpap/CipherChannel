@@ -64,9 +64,9 @@ nonce_bytes = counter.to_bytes(12, byteorder='little')
 Each CipherChannel context is configured as either **initiator** or **responder**.
 
 | Role      | Sends counters | Receives counters | Initial seqSend | Initial seqRecv |
-|-----------|----------------|-------------------|-----------------|-----------------|
+| --------- | -------------- | ----------------- | --------------- | --------------- |
 | Initiator | Even: 2, 4, 6… | Odd: 3, 5, 7…     | 0               | 1               |
-| Responder | Odd:  3, 5, 7… | Even: 2, 4, 6…    | 1               | 0               |
+| Responder | Odd: 3, 5, 7…  | Even: 2, 4, 6…    | 1               | 0               |
 
 Reflection rejection rule: a received counter MUST have the **same parity** as the
 current receive counter (`seqRecv`). A counter with the wrong parity MUST be silently
@@ -132,8 +132,8 @@ Explicit authenticated fragmentation for larger payloads is future work.
 Deployments MUST maintain **separate** operational keys, CipherChannel contexts,
 persistent state files/namespaces, and locks for each logical endpoint:
 
-- `K_phone`  — phone/laptop supervisory channel
-- `K_cane`   — cane (ESP32) base and secure channels
+- `K_phone` — phone/laptop supervisory channel
+- `K_cane` — cane (ESP32) base and secure channels
 
 Packets encrypted under `K_phone` MUST NOT be accepted by the cane context, and
 vice-versa. This is enforced cryptographically: GCM authentication will fail for
@@ -165,6 +165,7 @@ Required state machine:
 ### Test-only bypass
 
 A `BenchmarkProvisioningGate` MAY be used for automated experiments. It MUST:
+
 - Be disabled by default.
 - Require explicit opt-in (e.g. `BENCHMARK_PROVISIONING=1` environment variable).
 - Log clearly when active.
@@ -237,6 +238,7 @@ Offset  Length  Field
 ```
 
 Implementations MUST fail closed (raise ChannelException) if:
+
 - STATE_FORMAT_VERSION ≠ 1
 - PROTOCOL_VERSION ≠ 1
 - File is truncated at any field
@@ -249,13 +251,13 @@ The raw key MUST NOT appear in logs or debug output.
 
 ## 14. NVS state layout (ESP32)
 
-| NVS key   | Type      | Content                    |
-|-----------|-----------|----------------------------|
-| `sfv`     | bytes (1) | STATE_FORMAT_VERSION = 1   |
-| `pv`      | bytes (1) | PROTOCOL_VERSION = 1       |
-| `seqSend` | bytes (8) | send counter (uint64_t LE) |
-| `seqRecv` | bytes (8) | recv counter (uint64_t LE) |
-| `key`     | bytes (32)| AES-256 key                |
+| NVS key   | Type       | Content                    |
+| --------- | ---------- | -------------------------- |
+| `sfv`     | bytes (1)  | STATE_FORMAT_VERSION = 2   |
+| `pv`      | bytes (1)  | PROTOCOL_VERSION = 1       |
+| `seqSend` | bytes (12) | send counter (uint64_t LE) |
+| `seqRecv` | bytes (12) | recv counter (uint64_t LE) |
+| `key`     | bytes (32) | AES-256 key                |
 
 Load MUST fail if `sfv` or `pv` are absent or do not match expected values.
 
@@ -265,17 +267,17 @@ Load MUST fail if `sfv` or `pv` are absent or do not match expected values.
 
 All implementations MUST produce and accept the following deterministic packet.
 
-| Field         | Value (hex)                                      |
-|---------------|--------------------------------------------------|
-| key           | `00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00`  |
-|               | `00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00`  |
-| role          | initiator                                        |
-| seqSend       | 0 (first send → 2)                               |
-| plaintext     | `74 65 73 74`  (`"test"`, 4 bytes)               |
-| nonce         | `02 00 00 00  00 00 00 00  00 00 00 00`  (12 B)  |
-| ciphertext    | `bb 3a f9 b4`  (4 bytes)                         |
-| tag           | `d8 1a 74 11  3b 0c 7c 23  2a fe 5b 00  ca c5 09 5a`  |
-| full packet   | nonce + ciphertext + tag = 32 bytes              |
+| Field       | Value (hex)                                          |
+| ----------- | ---------------------------------------------------- |
+| key         | `00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00` |
+|             | `00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00` |
+| role        | initiator                                            |
+| seqSend     | 0 (first send → 2)                                   |
+| plaintext   | `74 65 73 74` (`"test"`, 4 bytes)                    |
+| nonce       | `02 00 00 00  00 00 00 00  00 00 00 00` (12 B)       |
+| ciphertext  | `bb 3a f9 b4` (4 bytes)                              |
+| tag         | `d8 1a 74 11  3b 0c 7c 23  2a fe 5b 00  ca c5 09 5a` |
+| full packet | nonce + ciphertext + tag = 32 bytes                  |
 
 Acceptance criteria:
 
@@ -298,13 +300,13 @@ Acceptance criteria:
 
 ## 16. Protocol-breaking changes from the previous implementation
 
-| # | Change                                      | Impact                              |
-|---|---------------------------------------------|-------------------------------------|
-| 1 | Nonce: 16 bytes → 12 bytes                  | Wire-format incompatible            |
-| 2 | PKCS7 padding removed                       | Wire-format incompatible            |
-| 3 | State file format versioned (new header)    | Old state files unreadable (correct)|
-| 4 | MAX_PLAINTEXT_SIZE = 400 enforced           | Rejects previously-allowed 401–512B |
-| 5 | Counter checked before decryption           | No observable wire change           |
-| 6 | send() raises on oversized plaintext        | API change (was silent)             |
-| 7 | Provisioning gate required                  | Deployment procedure change         |
-| 8 | Endpoint-specific keys enforced             | Separate key provisioning required  |
+| #   | Change                                   | Impact                               |
+| --- | ---------------------------------------- | ------------------------------------ |
+| 1   | Nonce: 16 bytes → 12 bytes               | Wire-format incompatible             |
+| 2   | PKCS7 padding removed                    | Wire-format incompatible             |
+| 3   | State file format versioned (new header) | Old state files unreadable (correct) |
+| 4   | MAX_PLAINTEXT_SIZE = 400 enforced        | Rejects previously-allowed 401–512B  |
+| 5   | Counter checked before decryption        | No observable wire change            |
+| 6   | send() raises on oversized plaintext     | API change (was silent)              |
+| 7   | Provisioning gate required               | Deployment procedure change          |
+| 8   | Endpoint-specific keys enforced          | Separate key provisioning required   |
