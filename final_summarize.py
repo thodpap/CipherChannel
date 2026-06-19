@@ -110,7 +110,6 @@ def table_concurrent(d: dict) -> str:
         "| Endpoint | Sent | Accepted | Failed | Notes |",
         "|----------|------|----------|--------|-------|",
         f"| Laptop (supervisory) | {laptop_sent} | {laptop_ok} | {laptop_fail} | Fedora/Bleak, substitutes for Android app |",
-        f"| Cane (ESP32, manual) | {cane_obs} | TODO/manual | — | Operator-triggered; firmware NVS isolation |",
         "",
         f"**Replay rejection**: {replay_rej}/{replay_run} replayed packets rejected by server counter check",
         "",

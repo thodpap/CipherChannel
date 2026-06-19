@@ -56,7 +56,7 @@ nonce(12 B) || ciphertext(N B) || GCM-tag(16 B)
 **Counter / nonce:**
 
 - The nonce is a 96-bit unsigned integer in **little-endian** byte order.
-- The send counter increments by 2 and is persisted *before* producing each packet,
+- The send counter increments by 2 and is persisted _before_ producing each packet,
   so the nonce is never reused even if the device crashes between encrypt and transmit.
 - A received counter must be **strictly greater** than the last accepted counter and
   must have the **same parity** (direction-coded to prevent reflection attacks).
@@ -65,10 +65,10 @@ nonce(12 B) || ciphertext(N B) || GCM-tag(16 B)
 
 **Direction parity:**
 
-| Role | Sends | Receives |
-|------|-------|---------|
-| Initiator (`initiator=True`) | even (2, 4, 6, …) | odd |
-| Responder (`initiator=False`) | odd (3, 5, 7, …) | even |
+| Role                          | Sends             | Receives |
+| ----------------------------- | ----------------- | -------- |
+| Initiator (`initiator=True`)  | even (2, 4, 6, …) | odd      |
+| Responder (`initiator=False`) | odd (3, 5, 7, …)  | even     |
 
 The ESP32 is always the initiator; the RPi is always the responder for each channel.
 
@@ -77,7 +77,7 @@ The ESP32 is always the initiator; the RPi is always the responder for each chan
 Two independent operational keys are maintained per session:
 
 - `K_phone` — phone/laptop supervisory channel (RPi ↔ laptop)
-- `K_cane`  — cane (ESP32) base and secure channels (RPi ↔ ESP32)
+- `K_cane` — cane (ESP32) base and secure channels (RPi ↔ ESP32)
 
 A packet encrypted under `K_phone` cannot be accepted by the cane context and
 vice-versa: AES-256-GCM authentication fails with probability ≥ 1 − 2^−128.
@@ -106,8 +106,10 @@ sends and receives on the same context are safe.
 **Persistence:**
 
 - **Python (RPi):** atomic temp-file rename with double-fsync (write → fsync fd →
-  os.replace → fsync parent dir). Durable on ext4 with ordered-data mode.
-  State files live under `/tmp/awake_exp_state/` (server) or `/tmp/` (client).
+  os.replace → fsync parent dir). This provides durability on ext4 with ordered-data
+  mode when the state directory is on persistent storage. Some automated experiments
+  use temporary paths under `/tmp`; those runs validate simulated process restart,
+  not power-loss or reboot durability.
 - **ESP32:** Arduino `Preferences` (NVS flash). `Preferences::end()` calls
   `nvs_commit()` internally. Each channel uses its own NVS namespace (`ble_chan`,
   `ble_sec`). State format version 2 (12-byte counters).
@@ -148,7 +150,7 @@ CipherChannel/
 │
 ├── final_restart_adversarial.py  # Experiment A: 13 adversarial security tests
 ├── final_mtu_check.py            # Experiment B: MTU / long-write confirmation
-├── final_concurrent_endpoints.py # Experiment C: concurrent endpoint isolation
+├── final_concurrent_endpoints.py # Experiment C: automated endpoint-isolation / replay validation
 ├── final_summarize.py            # Aggregates all results into Markdown tables
 ├── esp32_footprint.sh            # ESP32 flash/RAM footprint via arduino-cli
 │
@@ -266,23 +268,19 @@ python3 final_mtu_check.py --address <RPi-MAC>
 Sends encrypted frames of increasing plaintext size (up to 400 B) and confirms
 that 428-byte packets are within the evaluated BLE long-write limit.
 
-### C — Concurrent Endpoint Validation (laptop + RPi + ESP32)
+### C — Automated Endpoint-Isolation Validation (laptop + RPi)
 
-```bash
+````bash
 # RPi: server already running (BENCHMARK_PROVISIONING=1)
 
 # Laptop:
-python3 final_concurrent_endpoints.py --address <RPi-MAC> --trials 20
-```
-
-Validates that the RPi maintains separate `CipherChannel` contexts for the phone
-supervisory client and the ESP32 cane controller simultaneously.
+python3 final_concurrent_endpoints.py --address <RPi-MAC> --trials 30
 
 ### D — ESP32 Resource Footprint
 
 ```bash
 bash esp32_footprint.sh
-```
+````
 
 Reports flash and static RAM usage from the compiler. See
 [FINAL_EXPERIMENTS.md](FINAL_EXPERIMENTS.md) for peak stack measurement.
@@ -361,18 +359,18 @@ ESP32 (initiator)                          RPi (responder)
 
 ## Protocol Changes from Previous Version
 
-| # | Change | Impact |
-|---|--------|--------|
-| 1 | Nonce 16 B → 12 B (96-bit IETF standard) | Wire-format incompatible |
-| 2 | PKCS7 padding removed | Wire-format incompatible |
-| 3 | Fixed overhead 32 B → 28 B | Packet sizes change |
-| 4 | MAX_PLAINTEXT_SIZE = 400 enforced | Rejects 401–512 B |
-| 5 | Per-endpoint keys (K_phone, K_cane) | Separate provisioning |
-| 6 | Provisioning gate (physical presence) | New deployment step |
-| 7 | State file / NVS versioned | Old state rejected; reprovision |
-| 8 | ESP32 counter 64-bit → 96-bit (cc_counter_t) | NVS sfv 1 → 2 |
-| 9 | Per-context FreeRTOS mutex on ESP32 | No observable wire change |
-| 10 | Key exchange response 80 B → 60 B | Client/firmware must match |
+| #   | Change                                       | Impact                          |
+| --- | -------------------------------------------- | ------------------------------- |
+| 1   | Nonce 16 B → 12 B (96-bit IETF standard)     | Wire-format incompatible        |
+| 2   | PKCS7 padding removed                        | Wire-format incompatible        |
+| 3   | Fixed overhead 32 B → 28 B                   | Packet sizes change             |
+| 4   | MAX_PLAINTEXT_SIZE = 400 enforced            | Rejects 401–512 B               |
+| 5   | Per-endpoint keys (K_phone, K_cane)          | Separate provisioning           |
+| 6   | Provisioning gate (physical presence)        | New deployment step             |
+| 7   | State file / NVS versioned                   | Old state rejected; reprovision |
+| 8   | ESP32 counter 64-bit → 96-bit (cc_counter_t) | NVS sfv 1 → 2                   |
+| 9   | Per-context FreeRTOS mutex on ESP32          | No observable wire change       |
+| 10  | Key exchange response 80 B → 60 B            | Client/firmware must match      |
 
 ---
 
