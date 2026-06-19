@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.29)  19 JUN 2026 13:50
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.29)  19 JUN 2026 14:03
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -886,39 +886,38 @@ pdfTeX warning (ext4): destination with the same identifier (name{table.9}) has 
                                                   \__shipout_drop_firstpage_...
 l.1159 
        ]
-Underfull \hbox (badness 1571) in paragraph at lines 1175--1176
+Underfull \hbox (badness 1571) in paragraph at lines 1170--1171
 \OT1/ptm/m/n/10 there-fore com-bine endpoint-specific keys with hardware-
  []
 
 
-Underfull \hbox (badness 1472) in paragraph at lines 1193--1194
+Underfull \hbox (badness 1472) in paragraph at lines 1188--1189
 \OT1/ptm/m/n/10 authenticated-encryption pro-to-col for se-cur-ing BLE-based
  []
 
 [12]
-Underfull \hbox (badness 2951) in paragraph at lines 1217--1218
+Underfull \hbox (badness 2951) in paragraph at lines 1212--1213
 \OT1/ptm/m/n/8 925, 2020. [On-line]. Avail-able: []$https : / / www . usenix . org / conference /
  []
 
 
-Underfull \hbox (badness 2626) in paragraph at lines 1226--1227
+Underfull \hbox (badness 2626) in paragraph at lines 1221--1222
 \OT1/ptm/m/n/8 able: []$https : / / www . usenix . org / conference / usenixsecurity20 / presentation /
  []
 
 
-Underfull \hbox (badness 5064) in paragraph at lines 1265--1266
+Underfull \hbox (badness 5064) in paragraph at lines 1260--1261
 []\OT1/ptm/m/n/8 C. Cumplido-Trasmonte, J. Ramos-Rojas, E. Delgado-Castillejo,
  []
 
 
-Underfull \vbox (badness 1377) has occurred while \output is active []
-
- [13]
-Underfull \hbox (badness 1990) in paragraph at lines 1313--1314
+Underfull \hbox (badness 1990) in paragraph at lines 1308--1309
 []\OT1/ptm/m/n/8 P. Ki-et-z-mann, L. Boeck-mann, L. Lanzieri, T. C. Schmidt, and
  []
 
-[14] (./bare_jrnl.aux)
+[13] [14
+
+] (./bare_jrnl.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -929,16 +928,16 @@ Package rerunfilecheck Info: File `bare_jrnl.out' has not changed.
 Here is how much of TeX's memory you used:
  24811 strings out of 467363
  469282 string characters out of 5419001
- 898369 words of memory out of 6000000
+ 902635 words of memory out of 6000000
  53342 multiletter control sequences out of 15000+600000
  677397 words of font info for 135 fonts, out of 8000000 for 9000
  1145 hyphenation exceptions out of 8191
  99i,11n,108p,1310b,884s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on bare_jrnl.pdf (14 pages, 321479 bytes).
+Output written on bare_jrnl.pdf (14 pages, 320647 bytes).
 PDF statistics:
- 615 PDF objects out of 1000 (max. 8388607)
- 543 compressed objects within 6 object streams
+ 613 PDF objects out of 1000 (max. 8388607)
+ 541 compressed objects within 6 object streams
  122 named destinations out of 1000 (max. 500000)
  341 words of extra memory for PDF output out of 10000 (max. 10000000)
 
