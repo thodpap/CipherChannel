@@ -623,6 +623,12 @@ In CipherChannel, command payloads are short, typically consisting of compact JS
 
 For CipherChannel, the primary cryptographic requirement is nonce uniqueness under a fixed operational key. The persistent 96-bit counter-nonce construction in Section~\ref{sec:counternonce} is designed to satisfy this requirement across disconnections and process restarts. The AEAD primitive may be revisited for future ports whose hardware accelerators, cryptographic libraries, or certification requirements differ from the evaluated implementation.
 
+A standard secure-transport alternative would be to tunnel a DTLS-style record layer over an application-defined BLE/GATT framing layer. We did not use DTLS as the primary design basis because CipherChannel targets command admission rather than general-purpose secure transport. In the evaluated setting, a BLE reconnection does not create a new CipherChannel session; the endpoint reloads its operational key and persistent counter state and can resume command validation without an additional cryptographic handshake. By contrast, in the no-resumption DTLS cold-start configuration evaluated in Section~\ref{sec:dtls-baseline}, application data can be exchanged only after explicit DTLS session establishment.
+
+DTLS also does not remove the main state-management requirement of this work. DTLS record replay protection is tied to transport-session epoch and sequence-number state, whereas the safety requirement considered here is persistent command-admission state across BLE disconnections and process restarts. A DTLS-based design would therefore still need application-managed durable state, or an equivalent recovery mechanism, to avoid accepting stale commands after endpoint or gateway restart.
+
+Finally, BLE/GATT is exposed to applications through characteristic writes, reads, notifications, ATT MTU limits, and host-stack buffering rather than through a native datagram socket abstraction. A DTLS-over-GATT design would therefore require an additional framing and reassembly layer before the DTLS record layer could be used. CipherChannel instead places the authenticated command frame directly at the GATT payload boundary and performs AEAD verification, freshness validation, and receive-counter persistence before command release.
+
 \subsection{Packet Format}
 \label{sec:packetformat}
 
@@ -1024,6 +1030,34 @@ Total & 5050.1 & 4624.1 & 1502.0 & 7774.5 & 10384.6 \\
 \end{tabular}
 \end{table}
 
+\subsection{DTLS Baseline Comparison}
+\label{sec:dtls-baseline}
+
+To contextualise the CipherChannel cold-start latency, we measured the cold-start round-trip time of a standard DTLS~1.2 PSK secure channel between the same laptop and Raspberry~Pi hardware over UDP/IP (Wi-Fi). Each trial was a fully independent DTLS session: new UDP socket, full PSK handshake, one command datagram, one ACK datagram, and session close. No session resumption was used. The ciphersuite was \texttt{TLS\_PSK\_WITH\_AES\_128\_GCM\_SHA256} (mbedTLS~3.6 on the laptop, mbedTLS~2.28 on the RPi). Table~\ref{tab:dtls_baseline} reports results for 500 trials (498 succeeded; 2 failed due to Wi-Fi packet loss triggering DTLS retransmission timeouts).
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{2.5pt}
+\caption{DTLS~1.2 PSK Cold-Start Secure-Channel Baseline over UDP/IP Wi-Fi (ms, $N=500$, 498 succeeded)}
+\label{tab:dtls_baseline}
+\centering
+\scriptsize
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Phase} & \textbf{p50} & \textbf{Mean} & \textbf{p90} & \textbf{p95} & \textbf{p99} & \textbf{Max} \\
+\midrule
+Socket setup            &  0.03 &   0.04 &   0.04 &   0.20 &    0.25 &    0.29 \\
+DTLS handshake (PSK)    & 22.52 & 118.52 & 235.25 & 502.75 & 1181.85 & 4722.85 \\
+Command$\rightarrow$ACK &  3.69 &  30.81 &  59.88 & 114.69 &  478.14 & 2722.71 \\
+\midrule
+\textbf{Total}          & \textbf{27.62} & \textbf{149.39} & \textbf{329.73} & \textbf{740.15} & \textbf{1424.14} & \textbf{5686.97} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The DTLS baseline shows that a standard PSK secure-channel handshake can be fast at the median on a Wi-Fi LAN: the total cold-start median was 27.62\,ms and the median handshake cost was 22.52\,ms. However, the distribution was strongly skewed. The mean total latency was 149.39\,ms, more than five times the median, and the maximum observed total latency reached 5686.97\,ms. The handshake phase was the dominant contributor to this tail, with a 1181.85\,ms p99 and a 4722.85\,ms maximum. The two failed trials were recorded as retransmission timeouts, producing a 99.6\% success rate.
+
+These DTLS results should not be compared directly against the CipherChannel BLE cold-start total. The CipherChannel cold-start median in Table~\ref{tab:coldstart} is dominated by BLE scan and BLE connection establishment, not by CipherChannel cryptographic processing. Once the BLE connection exists, the CipherChannel command$\rightarrow$ACK median is 179.5\,ms, reflecting BLE scheduling and durable receive-counter persistence. A DTLS-over-GATT design would still be expected to incur the BLE scan and connection costs observed in Table~\ref{tab:coldstart}, while adding a secure-channel establishment step unless session resumption or another recovery mechanism were implemented. The relevant conclusion is therefore not that CipherChannel is faster than DTLS over UDP/IP, but that CipherChannel avoids adding a second cryptographic handshake to the BLE reconnect path while preserving application-managed, crash-safe replay state for command admission.
 \subsection{Gateway Internal Processing Cost}
 
 Table~\ref{tab:server_processing} reports gateway internal processing for 1000 steady-state commands. The measured interval begins inside the GATT characteristic-write callback and ends when the ACK characteristic value has been set. AES-256-GCM authentication and decryption had 1.70\,ms median and 1.98\,ms p99 latency. Freshness and direction-parity validation were below 0.005\,ms at p99. However, the durable receive-counter write had 14.21\,ms median and 101.87\,ms p99 latency, making persistence the dominant local gateway cost.
