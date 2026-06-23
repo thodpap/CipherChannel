@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1782073343.55574 "/home/thodpap/repos/CT-Engineering/exoskeleton-paper/CipherChannel/paper/bare_jrnl.tex" "bare_jrnl.pdf" "bare_jrnl" 1782073344.37727 0
-  "/home/thodpap/repos/CT-Engineering/exoskeleton-paper/CipherChannel/paper/bare_jrnl.tex" 1782073343.40478 123817 675cd75204f98bf6ac05b0ef12a17ff0 ""
+["pdflatex"] 1782252756.66454 "/home/thodpap/repos/CT-Engineering/exoskeleton-paper/CipherChannel/paper/bare_jrnl.tex" "bare_jrnl.pdf" "bare_jrnl" 1782252757.45541 0
+  "/home/thodpap/repos/CT-Engineering/exoskeleton-paper/CipherChannel/paper/bare_jrnl.tex" 1782252755.73102 124352 b9555f68a4d5d8547578b79737a25acb ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1777593600 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/adobe/courier/pcrr7t.tfm" 1136768653 960 379cc0019370a9e0208a0a3f949f847a ""
@@ -199,9 +199,10 @@
   "/usr/share/texlive/texmf-dist/web2c/texmf.cnf" 1777593600 43785 66587115382950aca692b5f6e3c2fb74 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1780004991 4946745 e955ee6c327994422bcb64d932496ad8 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1780004954 3520825 bf60771eff8f30bd2ff420e5e8b19ff0 ""
-  "bare_jrnl.aux" 1782073344.31606 16362 ffd70d30127552e8a467d11e1931a614 "pdflatex"
-  "bare_jrnl.out" 1782073344.31606 8678 7ea2011409b4edb53b176c14ab6490a5 "pdflatex"
-  "bare_jrnl.tex" 1782073343.40478 123817 675cd75204f98bf6ac05b0ef12a17ff0 ""
+  "bare_jrnl.aux" 1782252757.39803 16586 45b791cb0e5a943270a6d23220cd46a4 "pdflatex"
+  "bare_jrnl.out" 1782252757.39803 9014 8de719048907687de2548b05618ac6c1 "pdflatex"
+  "bare_jrnl.tex" 1782252755.73102 124352 b9555f68a4d5d8547578b79737a25acb ""
+  "thodoris.png" 1782224699.05432 2169964 ffd0bd65c376d9ea8868a86da56f2fe3 ""
   (generated)
   "bare_jrnl.aux"
   "bare_jrnl.log"

@@ -316,9 +316,7 @@ and Control of Medical Exoskeleton Devices}
 % ---------------------------------------------------------------
 \begin{abstract}
 Bluetooth Low Energy (BLE) is widely used in wearable and rehabilitation devices, but BLE pairing and link layer encryption are not sufficient as the sole protection mechanism for safety relevant exoskeleton command channels. In a powered lower limb exoskeleton, a replayed or injected command can trigger a physical state transition, making command authentication and replay resistance necessary above the BLE link layer.
-
 This paper presents \emph{CipherChannel}, an application layer authenticated encryption protocol for BLE mediated exoskeleton command and control. Implemented above GATT, CipherChannel combines AES-256-GCM, persistent 96-bit counter nonces, direction-separated replay protection, physically gated key provisioning, and gateway side command validation before commands are released to the proprietary exoskeleton runtime.
-
 CipherChannel passed all protocol correctness and provisioning-gate tests, and encrypted command exchange achieved 169.6\,ms median and 214.7\,ms p99 client-observed command-to-ACK latency at 0.5 m. Crash safe counter persistence, not AES-GCM, dominated the gateway path.
 \end{abstract}
 
@@ -347,7 +345,7 @@ However, BLE was not designed as a complete safety boundary for medical command 
 cayre2021injectable,antonioli2023bluffs}. 
 These attacks span key entropy downgrade, device impersonation, unauthenticated reconnection, implementation vulnerabilities in BLE stacks, frame injection into encrypted connections, and weaknesses in Bluetooth session-key derivation. The cumulative implication is unambiguous: relying on BLE LE Secure Connections alone is insufficient for any device whose compromise carries patient-safety consequences.
 
-Application layer security over BLE has been studied in the broader wearable and IoT literature. Prior work has proposed secure communication frameworks between the application and GATT layers for generic BLE wearables~\cite{zhang2019bleframework} and privacy-aware authentication mechanisms for BLE based IoT objects~\cite{cha2017bleiot}. These works establish the value of placing cryptographic protection above BLE pairing. They do not, however, address the specific semantics of exoskeleton command acceptance: sparse but safety critical control messages, replay resistance across disconnections, crash safe  command handling, physically gated provisioning, and isolation between a BLE gateway and a proprietary exoskeleton runtime.
+Application layer security over BLE has been studied in the broader wearable and IoT literature. Prior work has proposed secure communication frameworks between the application and GATT layers for generic BLE wearables~\cite{zhang2019bleframework} and privacy-aware authentication mechanisms for BLE based IoT objects~\cite{cha2017bleiot}. These works establish the value of placing cryptographic protection above BLE pairing. They do not, however, address the specific semantics of exoskeleton command acceptance: sparse but safety critical control messages, replay resistance across disconnections, crash safe command handling, physically gated provisioning, and isolation between a BLE gateway and a proprietary exoskeleton runtime.
 
 Conversely, wireless exoskeleton-control research has largely focused on control, sensing, rehabilitation performance, and communication latency rather than on authenticated command channel security. Existing systems demonstrate the utility of BLE or other wireless links for exoskeleton supervision, but they do not provide a reusable application layer authenticated encryption protocol for BLE mediated lower limb exoskeleton command and control
 ~\cite{andersson2024wireless,vinoj2019bclle,ozhiken2025ankle,wilhelm2022finger}. This leaves a practical gap between generic BLE security mechanisms and the safety requirements of command driven rehabilitation robotics.
@@ -396,7 +394,7 @@ Recent IIoT work has shown that AES-256-GCM can provide application layer end-to
 
 \subsection{Exoskeleton Control Architectures}
 
-lower limb exoskeleton control systems are commonly organised into a high-level intent-recognition layer, a mid-level finite-state-machine or trajectory controller, and a low-level joint controller~\cite{tucker2015review,baud2021review}.
+Lower limb exoskeleton control systems are commonly organised into a high-level intent-recognition layer, a mid-level finite-state-machine or trajectory controller, and a low-level joint controller~\cite{tucker2015review,baud2021review}.
 Commercial and research lower limb exoskeleton systems are commonly evaluated through assisted mobility tasks or training modes such as standing, sitting, stepping, walking, or gait rehabilitation~\cite{vandijsseldonk2021predictors,lee2021locomat,atlas2030_2022}.
 These commands are sparse but safety relevant: replaying or modifying a single valid command may be more consequential than corrupting a telemetry sample.
 
@@ -409,7 +407,7 @@ These works establish the need for wireless exoskeleton supervision, but they do
 
 \subsection{Application Layer Security for BLE and Medical IoT}
 
-Application layer security for medical wireless devices has been studied mainly in implantable medical devices, IoMT, and healthcare-IoT systems.
+Prior work on application-layer security for medical wireless devices has focused mainly on implantable medical devices, IoMT, and healthcare-IoT systems.
 Command injection against a commercial neurostimulator has been demonstrated together with a lightweight session-key protocol~\cite{marin2018neurostimulator}.
 A dual-factor, smartphone-proxied IMD access-control scheme with forensic support has also been proposed~\cite{chi2018esafe}.
 Broader healthcare-IoT studies report continued exposure to unauthorised access, impersonation, eavesdropping, tampering, denial of service, and data integrity attacks across device, network, cloud, and application layers~\cite{khatun2023hiotml,adil2024hciot,mrabet2020iotlayers}.
@@ -417,9 +415,9 @@ Related medical-device studies further show that command manipulation, replay, a
 
 Recent IoT healthcare work likewise emphasizes lightweight, device-level, and edge-aware protection rather than relying only on the underlying network.
 Secure communication, authentication, and cryptographic mechanisms are identified as central requirements for healthcare-IoT adoption~\cite{adil2024hciot}.
-Lightweight access control has been proposed for smart medical wearables~\cite{irshad2024fasmw}, secure data exchange requirements have been discussed for generative-AI-driven human digital twins in IoT healthcare~\cite{chen2024hdt}, and biomedical MEMS work similarly highlights unauthorized access, tampering, interception, encryption, authentication, and monitoring as core smart-healthcare concerns~\cite{jaime2023biomems}.
+Recent studies propose lightweight access-control mechanisms for smart medical wearables~\cite{irshad2024fasmw}, secure data exchange requirements have been discussed for generative-AI-driven human digital twins in IoT healthcare~\cite{chen2024hdt}, and biomedical MEMS work similarly highlights unauthorized access, tampering, interception, encryption, authentication, and monitoring as core smart-healthcare concerns~\cite{jaime2023biomems}.
 
-Within BLE specifically, an application-to-GATT security framework has been proposed for wearable devices, providing fresh keys and encrypt/decrypt services against replay, MITM, tampering, and passive eavesdropping~\cite{zhang2019bleframework}.
+Within BLE, prior work proposes an application-to-GATT security framework for wearable devices that provides fresh key generation and encryption/decryption services to mitigate replay, MITM, tampering, and passive eavesdropping attacks~\cite{zhang2019bleframework}.
 The tradeoff between BLE random-address privacy and authentication has also been addressed through an ECC-based access-control and secure-communication mechanism for BLE IoT objects~\cite{cha2017bleiot}.
 Additional empirical studies of consumer BLE and Bluetooth deployments confirm persistent authentication, pairing, and protocol level weaknesses beyond the formal Bluetooth specification~\cite{peker2022heartrate,sevier2019ble,hassan2018btsurvey}.
 
@@ -427,11 +425,11 @@ Recent BLE and embedded-IoT security work also explores alternative mechanisms f
 Blockchain-backed resilient pairing and bonding has been proposed for IPv6-over-BLE device migration, combining lightweight Encrypt-then-Authenticate protection, ledger-based transfer of bonding information across gateways, BAN-logic security analysis, and Deep-Q-Learning-based MITM detection~\cite{devi2025blockchainble}.
 Physical-layer key generation combined with physically unclonable functions has also been proposed for resource-constrained IoT edge nodes, deriving session keys from BLE channel entropy and hardware-level device uniqueness without relying on a pre-shared secret~\cite{hadrich2025plkgpuf}.
 The generated BLE derived keys in that approach pass the NIST Statistical Test Suite, supporting their suitability as cryptographic keying material for lightweight embedded deployments~\cite{hadrich2025plkgpuf}.
-At the cryptographic implementation level, ChaCha20-Poly1305 has been benchmarked on ARM Cortex-M4 processors as a compact, constant-time AEAD candidate for high-speed embedded IoT applications without AES hardware acceleration~\cite{desantis2017chacha20}.
+At the cryptographic implementation level, recent embedded-security studies evaluate ChaCha20-Poly1305 on ARM Cortex-M4 processors as a compact, constant-time AEAD candidate for high-speed embedded IoT applications without AES hardware acceleration~\cite{desantis2017chacha20}.
 The reported implementation achieves substantially lower cycle counts than AES-GCM on the evaluated Cortex-M4 platform, supporting the broader point that AEAD selection depends strongly on the available embedded hardware acceleration~\cite{desantis2017chacha20}.
 
 CipherChannel differs from this prior BLE, IoMT, and healthcare-IoT work by targeting the command semantics of powered lower limb exoskeletons.
-It combines application layer authenticated encryption, persistent counter-based replay protection, physical presence gated provisioning, validated forwarding into a proprietary runtime, dual supervisory/cane endpoint separation, and a validated Python/PyCryptodome reference implementation; C/OpenSSL and ESP32/mbedTLS remain portability targets for future validation.
+The system is built around application-layer authenticated encryption, counter-based replay protection, physical-presence provisioning, and controlled forwarding into the proprietary runtime. It also keeps the supervisory and cane endpoints separate. The Python/PyCryptodome reference implementation has been validated, while C/OpenSSL and ESP32/mbedTLS versions remain future portability targets.
 
 % ---------------------------------------------------------------
 % ---------------------------------------------------------------
@@ -1165,7 +1163,7 @@ These results refine the interpretation of the distance experiments. CipherChann
 \subsection{ESP32 Resource Footprint}
 \label{sec:esp32-footprint}
 
-Because the auxiliary cane controller is implemented on an ESP32-class microcontroller, we report the embedded resource footprint of the Arduino/mbedTLS implementation in Table~\ref{tab:esp32-footprint}. Prior work on low-end IoT cryptographic hardware shows that cryptographic cost is strongly platform- and acceleration-dependent, so implementation-level resource measurements are necessary rather than inferable from the protocol design alone~\cite{kietzmann2021hw}. Flash and dynamic RAM usage were obtained from the Arduino build output. Runtime stack availability was estimated using the FreeRTOS stack high-water mark reported during the BLE/CipherChannel execution path. Power consumption was not measured in this experiment and is therefore not reported.
+Because the auxiliary cane controller is implemented on an ESP32-class microcontroller, we report the embedded resource footprint of the Arduino/mbedTLS implementation in Table~\ref{tab:esp32-footprint}. Prior work on low-end IoT cryptographic hardware shows that cryptographic cost is strongly platform- and acceleration-dependent, so implementation-level resource measurements are necessary rather than inferable from the protocol design alone~\cite{kietzmann2021hw}. Flash and dynamic RAM usage were obtained from the Arduino build output. Runtime stack availability was estimated using the FreeRTOS stack high-water mark reported during the BLE/CipherChannel execution path. Power consumption is deployment-dependent and was not measured; the ESP32 is specified for typical BLE transmit currents of ~100-200 mA.
 
 
 \begin{table}[!t]
@@ -1415,11 +1413,10 @@ R.~J.~Kosinski, ``A Literature Review on Reaction Time,'' Clemson University, Se
 % ---------------------------------------------------------------
 % BIOGRAPHIES
 % ---------------------------------------------------------------
-% \begin{IEEEbiographynophoto}{Author One}
-% \TODO{Biography text: affiliation, research interests, relevant prior work.}
-% \end{IEEEbiographynophoto}
+\begin{IEEEbiography}
+[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{thodoris.png}}]
+{Theodoros Frixos Paparrigopoulos}
+received the Diploma degree in Electrical and Computer Engineering from the National Technical University of Athens, Greece, where he is currently pursuing the Ph.D. degree. He is a software engineer and researcher with experience in the design and development of secure, data-intensive, and distributed systems. He has contributed to national and European research and innovation projects in areas including critical infrastructure resilience, climate-risk assessment, cybersecurity, information analysis, and assistive technologies. 
+\end{IEEEbiography}
 
-% \begin{IEEEbiographynophoto}{Author Two}
-% \TODO{Biography text: affiliation, research interests, relevant prior work.}
-% \end{IEEEbiographynophoto}
 \end{document}

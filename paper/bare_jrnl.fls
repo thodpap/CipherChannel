@@ -391,6 +391,15 @@ INPUT /usr/share/texlive/texmf-dist/fonts/vf/adobe/courier/pcrr7t.vf
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/adobe/courier/pcrr8r.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/vf/adobe/times/ptmri7t.vf
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/adobe/times/ptmri8r.tfm
+INPUT ./thodoris.png
+INPUT ./thodoris.png
+INPUT ./thodoris.png
+INPUT ./thodoris.png
+INPUT ./thodoris.png
+INPUT ./thodoris.png
+INPUT ./thodoris.png
+INPUT ./thodoris.png
+INPUT ./thodoris.png
 INPUT bare_jrnl.aux
 INPUT ./bare_jrnl.out
 INPUT ./bare_jrnl.out

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.29)  21 JUN 2026 23:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.5.29)  24 JUN 2026 01:12
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -694,26 +694,11 @@ Package hyperref Info: Link coloring OFF on input line 280.
 \@outlinefile=\write4
 \openout4 = `bare_jrnl.out'.
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 322--323
-[]\OT1/ptm/b/n/9 CipherChannel passed all pro-to-col cor-rect-ness and
- []
-
-
-Underfull \hbox (badness 2368) in paragraph at lines 322--323
-\OT1/ptm/b/n/9 provisioning-gate tests, and en-crypted com-mand ex-change
- []
-
-
-Underfull \hbox (badness 2781) in paragraph at lines 322--323
-\OT1/ptm/b/n/9 command-to-ACK la-tency at 0.5 m. Crash safe counter
- []
-
-LaTeX Font Info:    Trying to load font information for OT1+pcr on input line 339.
-(/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1pcr.fd
+LaTeX Font Info:    Trying to load font information for OT1+pcr on input line 337.
+ (/usr/share/texlive/texmf-dist/tex/latex/psnfss/ot1pcr.fd
 File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
-Underfull \hbox (badness 5302) in paragraph at lines 352--354
+Underfull \hbox (badness 5302) in paragraph at lines 350--352
 []\OT1/ptm/m/n/10 Conversely, wire-less exoskeleton-control re-search has
  []
 
@@ -721,95 +706,113 @@ Underfull \hbox (badness 5302) in paragraph at lines 352--354
 
 
 ]
-LaTeX Font Info:    Trying to load font information for U+msa on input line 364.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 362.
  (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 364.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 362.
  (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 Underfull \vbox (badness 1024) has occurred while \output is active []
 
 
-Underfull \hbox (badness 7221) in paragraph at lines 394--395
+Underfull \hbox (badness 7221) in paragraph at lines 392--393
 []\OT1/ptm/m/n/10 Recent IIoT work has shown that AES-256-GCM
  []
 
 
-Underfull \hbox (badness 3138) in paragraph at lines 394--395
+Underfull \hbox (badness 3138) in paragraph at lines 392--393
 \OT1/ptm/m/n/10 can pro-vide ap-pli-ca-tion layer end-to-end pro-tec-tion on
  []
 
 [2]
-Underfull \hbox (badness 10000) in paragraph at lines 418--421
+Underfull \hbox (badness 10000) in paragraph at lines 416--419
 []\OT1/ptm/m/n/10 Recent IoT health-care work like-wise em-pha-sizes
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 418--421
+Underfull \hbox (badness 10000) in paragraph at lines 416--419
 \OT1/ptm/m/n/10 lightweight, device-level, and edge-aware pro-tec-tion
  []
 
 
-Underfull \hbox (badness 5578) in paragraph at lines 418--421
+Underfull \hbox (badness 5578) in paragraph at lines 416--419
 \OT1/ptm/m/n/10 rather than re-ly-ing only on the un-der-ly-ing net-work.
  []
 
 
-Underfull \hbox (badness 2245) in paragraph at lines 418--421
+Underfull \hbox (badness 2245) in paragraph at lines 416--419
 \OT1/ptm/m/n/10 Se-cure com-mu-ni-ca-tion, au-then-ti-ca-tion, and cryp-to-graphic
  []
 
 
-Underfull \hbox (badness 4556) in paragraph at lines 418--421
+Underfull \hbox (badness 4556) in paragraph at lines 416--419
 \OT1/ptm/m/n/10 mech-a-nisms are iden-ti-fied as cen-tral re-quire-ments for
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 416--419
+\OT1/ptm/m/n/10 healthcare-IoT adop-tion [[]42[]]. Re-cent stud-ies pro-pose
+ []
+
+
+Underfull \hbox (badness 5924) in paragraph at lines 416--419
+\OT1/ptm/m/n/10 been dis-cussed for generative-AI-driven hu-man dig-i-tal
+ []
+
+
+Underfull \hbox (badness 3713) in paragraph at lines 416--419
+\OT1/ptm/m/n/10 twins in IoT health-care [[]44[]], and biomed-i-cal MEMS
  []
 
 [3] [4
 pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.605   \item \textbf
-                     {Passive eavesdropping}: An adversary captures BLE radi...] [5]
-Underfull \hbox (badness 2644) in paragraph at lines 646--647
+l.600 
+      ]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [5]
+Underfull \hbox (badness 2644) in paragraph at lines 644--645
 \OT1/ptm/m/n/10 coded ap-pli-ca-tion pay-load. In the eval-u-ated im-ple-men-
  []
 
 
-Underfull \hbox (badness 1715) in paragraph at lines 646--647
+Underfull \hbox (badness 1715) in paragraph at lines 644--645
 \OT1/ptm/m/n/10 ta-tion, this pay-load is a com-pact JSON com-mand ob-
  []
 
 [6]
-Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 699.
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 697.
 
-Underfull \hbox (badness 10000) in paragraph at lines 770--772
+Underfull \hbox (badness 10000) in paragraph at lines 768--770
 [] \OT1/ptm/b/n/8 Gate-way: \OT1/ptm/m/n/8 Over-write Se-cu-rity char-ac-ter-is-tic with
  []
 
 [7]
-Underfull \hbox (badness 10000) in paragraph at lines 870--871
+Underfull \hbox (badness 10000) in paragraph at lines 868--869
 []\OT1/ptm/m/n/10 The ref-er-ence im-ple-men-ta-tion in-cludes a
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 870--871
+Underfull \hbox (badness 10000) in paragraph at lines 868--869
 \OT1/ptm/m/n/10 Python/PyCryptodome gate-way im-ple-men-ta-tion and an
  []
 
 
-Underfull \hbox (badness 6708) in paragraph at lines 870--871
+Underfull \hbox (badness 6708) in paragraph at lines 868--869
 \OT1/pcr/m/n/10 || ciphertext || tag \OT1/ptm/m/n/10 lay-out, the 96-bit counter
  []
 
 
-Underfull \hbox (badness 2608) in paragraph at lines 870--871
+Underfull \hbox (badness 2608) in paragraph at lines 868--869
 \OT1/ptm/m/n/10 nonce, and the receive-side mono-tonic-ity and di-rec-tion
  []
 
 [8]
-Underfull \hbox (badness 5374) in paragraph at lines 916--917
+Underfull \hbox (badness 5374) in paragraph at lines 914--915
 []\OT1/ptm/m/n/10 Attacks such as KNOB/TOPS [[]1[]], [[]7[]], BIAS [[]2[]],
  []
 
@@ -817,98 +820,107 @@ Underfull \hbox (badness 5374) in paragraph at lines 916--917
 pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.951 
+l.945 
       ] [10
 pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1037 
+l.1035 
        
 pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1037 
+l.1035 
        
 pdfTeX warning (ext4): destination with the same identifier (name{table.4}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1037 
+l.1035 
        ] [11
 pdfTeX warning (ext4): destination with the same identifier (name{table.5}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1140 
+l.1138 
        
 pdfTeX warning (ext4): destination with the same identifier (name{table.6}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1140 
+l.1138 
        
 pdfTeX warning (ext4): destination with the same identifier (name{table.7}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1140 
-       
+l.1138 
+       ] [12
 pdfTeX warning (ext4): destination with the same identifier (name{table.8}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1140 
-       ] [12
+l.1205 
+       
 pdfTeX warning (ext4): destination with the same identifier (name{table.9}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1208 T
-        his trade-off is acceptable for the tested supervisory command model...
+l.1205 
+       
 pdfTeX warning (ext4): destination with the same identifier (name{table.10}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.1208 T
-        his trade-off is acceptable for the tested supervisory command model...]
-Underfull \hbox (badness 1571) in paragraph at lines 1220--1221
+l.1205 
+       ]
+Underfull \hbox (badness 1571) in paragraph at lines 1218--1219
 \OT1/ptm/m/n/10 there-fore com-bine endpoint-specific keys with hardware-
  []
 
 [13]
-Underfull \hbox (badness 2951) in paragraph at lines 1262--1263
+Underfull \hbox (badness 2951) in paragraph at lines 1260--1261
 \OT1/ptm/m/n/8 925, 2020. [On-line]. Avail-able: []$https : / / www . usenix . org / conference /
  []
 
 
-Underfull \hbox (badness 2626) in paragraph at lines 1271--1272
+Underfull \hbox (badness 2626) in paragraph at lines 1269--1270
 \OT1/ptm/m/n/8 able: []$https : / / www . usenix . org / conference / usenixsecurity20 / presentation /
  []
 
 
-Underfull \hbox (badness 5064) in paragraph at lines 1310--1311
+Underfull \hbox (badness 5064) in paragraph at lines 1308--1309
 []\OT1/ptm/m/n/8 C. Cumplido-Trasmonte, J. Ramos-Rojas, E. Delgado-Castillejo,
  []
 
 [14]
-Underfull \hbox (badness 1990) in paragraph at lines 1358--1359
+Underfull \hbox (badness 1990) in paragraph at lines 1356--1357
 []\OT1/ptm/m/n/8 P. Ki-et-z-mann, L. Boeck-mann, L. Lanzieri, T. C. Schmidt, and
  []
 
-[15] (./bare_jrnl.aux)
+<thodoris.png, id=508, 1027.84pt x 1541.76pt>
+File: thodoris.png Graphic file (type png)
+<use thodoris.png>
+Package pdftex.def Info: thodoris.png  used on input line 1418.
+(pdftex.def)             Requested size: 60.22484pt x 90.33727pt.
+File: thodoris.png Graphic file (type png)
+<use thodoris.png>
+Package pdftex.def Info: thodoris.png  used on input line 1418.
+(pdftex.def)             Requested size: 60.22484pt x 90.33727pt.
+[15 <./thodoris.png (PNG copy)>] (./bare_jrnl.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `bare_jrnl.out' has not changed.
-(rerunfilecheck)             Checksum: 7EA2011409B4EDB53B176C14AB6490A5;8678.
+(rerunfilecheck)             Checksum: 8DE719048907687DE2548B05618AC6C1;9014.
  ) 
 Here is how much of TeX's memory you used:
- 24820 strings out of 467363
- 469418 string characters out of 5419001
- 900161 words of memory out of 6000000
- 53347 multiletter control sequences out of 15000+600000
+ 24835 strings out of 467363
+ 469744 string characters out of 5419001
+ 900082 words of memory out of 6000000
+ 53360 multiletter control sequences out of 15000+600000
  677397 words of font info for 135 fonts, out of 8000000 for 9000
  1145 hyphenation exceptions out of 8191
  99i,11n,108p,1310b,884s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on bare_jrnl.pdf (15 pages, 328785 bytes).
+Output written on bare_jrnl.pdf (15 pages, 2475265 bytes).
 PDF statistics:
- 630 PDF objects out of 1000 (max. 8388607)
- 557 compressed objects within 6 object streams
- 126 named destinations out of 1000 (max. 500000)
- 357 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 643 PDF objects out of 1000 (max. 8388607)
+ 567 compressed objects within 6 object streams
+ 128 named destinations out of 1000 (max. 500000)
+ 390 words of extra memory for PDF output out of 10000 (max. 10000000)
 

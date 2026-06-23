@@ -56,19 +56,19 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Evaluated Exoskeleton Integration}{4}{subsection.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Command Flow and Runtime Isolation}{4}{subsection.3.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-D}}Endpoint Roles and State Separation}{4}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {IV}The CipherChannel Protocol}{4}{section.4}\protected@file@percent }
-\newlabel{sec:protocol}{{IV}{4}{The CipherChannel Protocol}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Threat Model}{4}{subsection.4.1}\protected@file@percent }
-\newlabel{sec:threatmodel}{{\mbox  {IV-A}}{4}{Threat Model}{subsection.4.1}{}}
 \citation{nist_sp800_38d}
 \citation{kietzmann2021hw,riddle2023aespie}
 \citation{desantis2017chacha20}
-\citation{nist_sp800_38d}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}The CipherChannel Protocol}{5}{section.4}\protected@file@percent }
+\newlabel{sec:protocol}{{IV}{5}{The CipherChannel Protocol}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Threat Model}{5}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:threatmodel}{{\mbox  {IV-A}}{5}{Threat Model}{subsection.4.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-A}0a}In-scope threats}{5}{paragraph.4.1.0.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {IV-A}0b}Out-of-scope threats}{5}{paragraph.4.1.0.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Cryptographic Primitives}{5}{subsection.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Packet Format}{5}{subsection.4.3}\protected@file@percent }
-\newlabel{sec:packetformat}{{\mbox  {IV-C}}{5}{Packet Format}{subsection.4.3}{}}
+\citation{nist_sp800_38d}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Packet Format}{6}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:packetformat}{{\mbox  {IV-C}}{6}{Packet Format}{subsection.4.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Handling BLE MTU Constraints}{6}{subsection.4.4}\protected@file@percent }
 \newlabel{sec:mtu}{{\mbox  {IV-D}}{6}{Handling BLE MTU Constraints}{subsection.4.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-E}}Persistent Counter Nonces and Replay Protection}{6}{subsection.4.5}\protected@file@percent }
@@ -92,8 +92,6 @@
 \newlabel{sec:impl}{{V}{8}{Reference Implementation}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Implementation Robustness}{8}{subsection.5.1}\protected@file@percent }
 \newlabel{sec:impl-robustness}{{\mbox  {V-A}}{8}{Implementation Robustness}{subsection.5.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VI}Experimental Evaluation}{8}{section.6}\protected@file@percent }
-\newlabel{sec:eval}{{VI}{8}{Experimental Evaluation}{section.6}{}}
 \citation{antonioli2020knob,zhang2020downgrade}
 \citation{antonioli2020bias}
 \citation{wu2020blesa}
@@ -101,11 +99,13 @@
 \citation{cayre2021injectable}
 \citation{antonioli2023bluffs}
 \citation{tschirschnitz2021method}
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Experimental Evaluation}{9}{section.6}\protected@file@percent }
+\newlabel{sec:eval}{{VI}{9}{Experimental Evaluation}{section.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Experimental Setup}{9}{subsection.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Security Analysis Against Known BLE Attacks}{9}{subsection.6.2}\protected@file@percent }
-\newlabel{sec:attackcoverage}{{\mbox  {VI-B}}{9}{Security Analysis Against Known BLE Attacks}{subsection.6.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Protocol Correctness Test Results}}{9}{table.1}\protected@file@percent }
 \newlabel{tab:correctness}{{I}{9}{Protocol Correctness Test Results}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Security Analysis Against Known BLE Attacks}{9}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:attackcoverage}{{\mbox  {VI-B}}{9}{Security Analysis Against Known BLE Attacks}{subsection.6.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-C}}Protocol Correctness and Provisioning Gate}{9}{subsection.6.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Adversarial-Rejection Test Results}}{10}{table.2}\protected@file@percent }
 \newlabel{tab:adversarial}{{II}{10}{Adversarial-Rejection Test Results}{table.2}{}}
@@ -115,31 +115,31 @@
 \@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Cold Start Provisioning and First-Command Latency (ms, $N=500$)}}{10}{table.4}\protected@file@percent }
 \newlabel{tab:coldstart}{{IV}{10}{Cold Start Provisioning and First-Command Latency (ms, $N=500$)}{table.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-E}}Steady State and Cold Start Command Latency}{10}{subsection.6.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-F}}DTLS Baseline Comparison}{10}{subsection.6.6}\protected@file@percent }
-\newlabel{sec:dtls-baseline}{{\mbox  {VI-F}}{10}{DTLS Baseline Comparison}{subsection.6.6}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces DTLS~1.2 PSK Cold-Start Secure-Channel Baseline over UDP/IP Wi-Fi (ms, $N=500$, 498 succeeded)}}{11}{table.5}\protected@file@percent }
 \newlabel{tab:dtls_baseline}{{V}{11}{DTLS~1.2 PSK Cold-Start Secure-Channel Baseline over UDP/IP Wi-Fi (ms, $N=500$, 498 succeeded)}{table.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-F}}DTLS Baseline Comparison}{11}{subsection.6.6}\protected@file@percent }
+\newlabel{sec:dtls-baseline}{{\mbox  {VI-F}}{11}{DTLS Baseline Comparison}{subsection.6.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-G}}Gateway Internal Processing Cost}{11}{subsection.6.7}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Gateway Side Receive-to-ACK Processing Breakdown (ms, $N=1000$)}}{11}{table.6}\protected@file@percent }
 \newlabel{tab:server_processing}{{VI}{11}{Gateway Side Receive-to-ACK Processing Breakdown (ms, $N=1000$)}{table.6}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {VII}{\ignorespaces Key Exchange Latency (ms, $N=500$)}}{11}{table.7}\protected@file@percent }
 \newlabel{tab:key_exchange_latency}{{VII}{11}{Key Exchange Latency (ms, $N=500$)}{table.7}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {VIII}{\ignorespaces Distance Sensitivity with Full Reconnect per Trial (ms, $N=200$ per condition)}}{11}{table.8}\protected@file@percent }
-\newlabel{tab:distance_latency}{{VIII}{11}{Distance Sensitivity with Full Reconnect per Trial (ms, $N=200$ per condition)}{table.8}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-H}}Key Exchange Latency}{11}{subsection.6.8}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-I}}Distance and Obstruction Sensitivity}{11}{subsection.6.9}\protected@file@percent }
 \citation{kietzmann2021hw}
 \citation{kosinski2013reaction}
 \citation{riddle2023aespie}
+\@writefile{lot}{\contentsline {table}{\numberline {VIII}{\ignorespaces Distance Sensitivity with Full Reconnect per Trial (ms, $N=200$ per condition)}}{12}{table.8}\protected@file@percent }
+\newlabel{tab:distance_latency}{{VIII}{12}{Distance Sensitivity with Full Reconnect per Trial (ms, $N=200$ per condition)}{table.8}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {IX}{\ignorespaces Distance Sensitivity in Steady State BLE Operation (ms, $N=500$ per condition)}}{12}{table.9}\protected@file@percent }
 \newlabel{tab:distance_steady}{{IX}{12}{Distance Sensitivity in Steady State BLE Operation (ms, $N=500$ per condition)}{table.9}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-J}}ESP32 Resource Footprint}{12}{subsection.6.10}\protected@file@percent }
 \newlabel{sec:esp32-footprint}{{\mbox  {VI-J}}{12}{ESP32 Resource Footprint}{subsection.6.10}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {X}{\ignorespaces ESP32 cane-controller firmware resource footprint}}{12}{table.10}\protected@file@percent }
+\newlabel{tab:esp32-footprint}{{X}{12}{ESP32 cane-controller firmware resource footprint}{table.10}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VII}Discussion}{12}{section.7}\protected@file@percent }
 \newlabel{sec:discussion}{{VII}{12}{Discussion}{section.7}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Interpretation of the Main Results}{12}{subsection.7.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {X}{\ignorespaces ESP32 cane-controller firmware resource footprint}}{12}{table.10}\protected@file@percent }
-\newlabel{tab:esp32-footprint}{{X}{12}{ESP32 cane-controller firmware resource footprint}{table.10}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Latency Trade-offs}{12}{subsection.7.2}\protected@file@percent }
 \citation{fda2023guidance}
 \citation{iec81001,iec60601_4_5}
@@ -151,8 +151,6 @@
 \newlabel{sec:regulatory}{{\mbox  {VII-F}}{13}{Regulatory Alignment}{subsection.7.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-G}}Future Work}{13}{subsection.7.7}\protected@file@percent }
 \newlabel{sec:futurework}{{\mbox  {VII-G}}{13}{Future Work}{subsection.7.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion}{13}{section.8}\protected@file@percent }
-\newlabel{sec:conclusion}{{VIII}{13}{Conclusion}{section.8}{}}
 \bibcite{antonioli2020knob}{1}
 \bibcite{antonioli2020bias}{2}
 \bibcite{wu2020blesa}{3}
@@ -182,9 +180,11 @@
 \bibcite{fda2023guidance}{27}
 \bibcite{iec80001}{28}
 \bibcite{iec60601_4_5}{29}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion}{14}{section.8}\protected@file@percent }
+\newlabel{sec:conclusion}{{VIII}{14}{Conclusion}{section.8}{}}
+\@writefile{toc}{\contentsline {section}{References}{14}{section*.1}\protected@file@percent }
 \bibcite{iec81001}{30}
 \bibcite{nist_sp800_38d}{31}
-\@writefile{toc}{\contentsline {section}{References}{14}{section*.1}\protected@file@percent }
 \bibcite{riddle2023aespie}{32}
 \bibcite{kietzmann2021hw}{33}
 \bibcite{hassan2018btsurvey}{34}
@@ -204,4 +204,6 @@
 \bibcite{hadrich2025plkgpuf}{48}
 \bibcite{desantis2017chacha20}{49}
 \bibcite{kosinski2013reaction}{50}
+\@writefile{toc}{\contentsline {section}{Biographies}{15}{IEEEbiography.0}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{Theodoros Frixos Paparrigopoulos}{15}{IEEEbiography.1}\protected@file@percent }
 \gdef \@abspage@last{15}
