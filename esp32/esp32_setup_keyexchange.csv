@@ -1,0 +1,11 @@
+section,metric,value_us,value_ms,success,attempts
+connection,client_create_us,152,0.152,1,
+connection,ble_connect_us,1332192,1332.192,1,
+connection,service_us,1577631,1577.631,1,
+connection,characteristics_us,4632,4.632,1,
+connection,notify_reg_us,289899,289.899,1,
+connection,total_us,3204506,3204.506,1,
+key_exchange,cc_send_us,8099,8.099,1,1
+key_exchange,ble_write_us,1379,1.379,1,1
+key_exchange,key_wait_us,340908,340.908,1,1
+key_exchange,total_us,350386,350.386,1,1

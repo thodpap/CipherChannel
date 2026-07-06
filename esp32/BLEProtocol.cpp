@@ -3,6 +3,8 @@
 #include <nvs_flash.h>
 #include <Arduino.h>
 #include <vector>
+#include <cstring>
+#include <cstdlib>
 
 BLEProtocol *bleProtocolInstance = nullptr; // For static callback access
 
@@ -23,7 +25,11 @@ BLEProtocol::BLEProtocol()
       secureChannel(nullptr),
       stopSharingFlag(false),
       needSecureKey(false),
-      serverAddress(nullptr)
+      serverAddress(nullptr),
+      waitingForAck(false),
+      ackReceived(false),
+      pendingAckTrialId(0),
+      ackReceiveUs(0)
 {
     // Pre-shared transport key (must match the RPi server)
     const unsigned char tempKey[32] = {
@@ -112,6 +118,31 @@ void BLEProtocol::checkConnect() {
     }
 }
 
+uint32_t BLEProtocol::extractTrialId(const char* plaintext) {
+    if (plaintext == nullptr) return 0;
+
+    const char* p = strstr(plaintext, "\"trial_id\"");
+    if (p != nullptr) {
+        p = strchr(p, ':');
+        if (p != nullptr) return static_cast<uint32_t>(strtoul(p + 1, nullptr, 10));
+    }
+
+    p = strstr(plaintext, "\"msg_id\"");
+    if (p != nullptr) {
+        const char* c = strstr(p, "C_");
+        if (c != nullptr) return static_cast<uint32_t>(strtoul(c + 2, nullptr, 10));
+    }
+
+    return 0;
+}
+
+bool BLEProtocol::isAckPayload(const char* plaintext) {
+    if (plaintext == nullptr) return false;
+    return strstr(plaintext, "ACK") != nullptr ||
+           strstr(plaintext, "ack") != nullptr ||
+           strstr(plaintext, "\"ok\":true") != nullptr;
+}
+
 void BLEProtocol::transmitMessage(const char* message) {
     if (needSecureKey) {
         Serial.println("[BLE] Skipping transmit: secure key not yet provisioned");
@@ -162,64 +193,217 @@ void BLEProtocol::transmitMessage(const char* message) {
     }
 }
 
+bool BLEProtocol::transmitMessageTimed(const char* message,
+                                       uint32_t trialId,
+                                       uint32_t ackTimeoutMs,
+                                       TransmitTiming& timing) {
+    timing = TransmitTiming();
+    timing.trialId = trialId;
+
+    if (message == nullptr || needSecureKey || !connected || cane2phoneCharacteristic == nullptr) {
+        return false;
+    }
+
+    timing.payloadLen = strlen(message);
+
+    uint8_t ciphertext[CC_MAX_PACKET_LEN];
+    size_t ciphertextLen = sizeof(ciphertext);
+
+    pendingAckTrialId = trialId;
+    ackReceiveUs = 0;
+    ackReceived = false;
+    waitingForAck = true;
+
+    const uint32_t t0 = micros();
+    if (!secureChannel->send(
+            reinterpret_cast<const uint8_t*>(message),
+            timing.payloadLen,
+            ciphertext,
+            ciphertextLen)
+    ) {
+        waitingForAck = false;
+        Serial.println("[BLE] Encryption failed");
+        return false;
+    }
+    const uint32_t t1 = micros();
+
+    cane2phoneCharacteristic->writeValue(ciphertext, ciphertextLen);
+    const uint32_t t2 = micros();
+
+    timing.ciphertextLen = ciphertextLen;
+    timing.ccSendUs = t1 - t0;       // Includes counter persistence + AES-GCM.
+    timing.bleWriteUs = t2 - t1;     // Local BLE library write call duration.
+
+    const uint32_t timeoutUs = ackTimeoutMs * 1000UL;
+
+    while (!ackReceived && static_cast<uint32_t>(micros() - t0) < timeoutUs) {
+        // Poll the same characteristic where the RPi writes the encrypted ACK.
+        String val = cane2phoneCharacteristic->readValue();
+
+        if (val.length() > 0) {
+            uint8_t buffer[CC_MAX_PACKET_LEN];
+
+            size_t n = val.length();
+            if (n > sizeof(buffer)) {
+                n = sizeof(buffer);
+            }
+
+            memcpy(buffer, val.c_str(), n);
+
+            notifyCallback(
+                cane2phoneCharacteristic,
+                buffer,
+                n,
+                false
+            );
+        }
+
+        delay(5);
+    }
+
+    timing.ackReceived = ackReceived;
+    timing.rttUs = ackReceived ? static_cast<uint32_t>(ackReceiveUs - t0)
+                               : static_cast<uint32_t>(micros() - t0);
+
+    waitingForAck = false;
+    return timing.ackReceived;
+}
+
 void BLEProtocol::notifyCallback(
     BLERemoteCharacteristic *pBLERemoteCharacteristic,
     uint8_t *pData,
     size_t length,
     bool isNotify
 ) {
-    if (!bleProtocolInstance) return;
+    if (!bleProtocolInstance) {
+        return;
+    }
+
+    // If the current trial already accepted its ACK, ignore duplicate notify/read data.
+    // Otherwise the same encrypted ACK may be decrypted twice and rejected as replay.
+    if (bleProtocolInstance->waitingForAck &&
+        bleProtocolInstance->ackReceived) {
+        return;
+    }
 
     Serial.println(pBLERemoteCharacteristic->getUUID().toString().c_str());
 
-    uint8_t plain[CC_MAX_PLAIN];
-    size_t plainLen = sizeof(plain);
+    uint8_t plain[CC_MAX_PLAIN + 1];
+    size_t plainLen = CC_MAX_PLAIN;
 
     // ── Security channel: server sends a new 32-byte secure key ──────────────
     if (pBLERemoteCharacteristic->getUUID().equals(bleProtocolInstance->caneSecurityUUID)) {
-        if (!bleProtocolInstance->channel->receive(pData, length, plain, plainLen)) {
+        if (!bleProtocolInstance->channel->receive(
+                pData,
+                length,
+                plain,
+                plainLen,
+                CC_PROVISION_TAG_CANE,
+                CC_PROVISION_TAG_CANE_LEN
+            )) {
             Serial.println("Failed to decrypt security channel message.");
             return;
         }
+
         if (plainLen == 32) {
             bleProtocolInstance->stopSharingFlag = true;
             bleProtocolInstance->setSecureKey(plain, plainLen);
             Serial.println("Secure key updated!");
         } else {
-            plain[plainLen] = '\0';
+            size_t n = plainLen;
+            if (n > CC_MAX_PLAIN) {
+                n = CC_MAX_PLAIN;
+            }
+            plain[n] = '\0';
+
             Serial.print("WARNING: Discarding non-key message of length ");
             Serial.print(plainLen);
             Serial.print(" on security channel: ");
             Serial.println((char*)plain);
         }
+
         return;
     }
 
-    // ── Secure channel: server sends an encrypted command ────────────────────
-    if (!bleProtocolInstance->secureChannel->receive(pData, length, plain, plainLen)) {
-        Serial.println("Failed to decrypt the message.");
+    // ── Secure channel: server sends an encrypted ACK/command ────────────────
+    if (!bleProtocolInstance->secureChannel) {
+        Serial.println("No secure channel available.");
         return;
     }
+
+    plainLen = CC_MAX_PLAIN;
+
+    if (!bleProtocolInstance->secureChannel->receive(pData, length, plain, plainLen)) {
+        if (bleProtocolInstance->waitingForAck) {
+            Serial.println("[BLE] Ignored duplicate/stale ACK candidate.");
+        } else {
+            Serial.println("Failed to decrypt the message.");
+        }
+        return;
+    }
+
+    size_t n = plainLen;
+    if (n > CC_MAX_PLAIN) {
+        n = CC_MAX_PLAIN;
+    }
+    plain[n] = '\0';
+
     Serial.println("Decryption successful.");
-    plain[plainLen] = '\0';
     Serial.println((char*)plain);
+
+    // ── Experiment ACK path ─────────────────────────────────────────────────
+    if (bleProtocolInstance->waitingForAck && isAckPayload((char*)plain)) {
+        const uint32_t ackTrialId = extractTrialId((char*)plain);
+
+        if (ackTrialId == bleProtocolInstance->pendingAckTrialId) {
+            bleProtocolInstance->ackReceiveUs = micros();
+            bleProtocolInstance->ackReceived = true;
+        } else {
+            Serial.printf(
+                "[BLE] Ignoring ACK for trial=%lu while waiting for trial=%lu\n",
+                (unsigned long)ackTrialId,
+                (unsigned long)bleProtocolInstance->pendingAckTrialId
+            );
+        }
+
+        return;
+    }
+
+    // Optional: handle non-ACK secure messages here later.
 }
 
 bool BLEProtocol::connectToServer() {
     Serial.print("Forming a connection to ");
 
+    const uint32_t t0 = micros();
     client = BLEDevice::createClient();
+    const uint32_t t1 = micros();
     Serial.println(" - Created client");
 
     client->setClientCallbacks(new MyClientCallback());
-    client->connect(myDevice);
+    const bool connectOk = client->connect(myDevice);
+    const uint32_t t2 = micros();
+    if (!connectOk) {
+        Serial.println(" - Failed BLE connect");
+        Serial.printf("CSV_CONN,%lu,%lu,0,0,0,%lu,0\n",
+                      (unsigned long)(t1 - t0),
+                      (unsigned long)(t2 - t1),
+                      (unsigned long)(t2 - t0));
+        return false;
+    }
     Serial.println(" - Connected to server");
 
     BLERemoteService *pRemoteService = client->getService(serviceUUID);
+    const uint32_t t3 = micros();
     if (pRemoteService == nullptr) {
         Serial.print("Failed to find our service UUID: ");
         Serial.println(serviceUUID.toString().c_str());
         client->disconnect();
+        Serial.printf("CSV_CONN,%lu,%lu,%lu,0,0,%lu,0\n",
+                      (unsigned long)(t1 - t0),
+                      (unsigned long)(t2 - t1),
+                      (unsigned long)(t3 - t2),
+                      (unsigned long)(t3 - t0));
         return false;
     }
     Serial.println(" - Found our service");
@@ -227,35 +411,62 @@ bool BLEProtocol::connectToServer() {
     cane2phoneCharacteristic    = pRemoteService->getCharacteristic(cane2phoneUUID);
     caneSecurityCharacteristic  = pRemoteService->getCharacteristic(caneSecurityUUID);
     caneResetCharacteristic     = pRemoteService->getCharacteristic(caneResetUUID);
+    const uint32_t t4 = micros();
 
     if (cane2phoneCharacteristic   == nullptr ||
         caneSecurityCharacteristic == nullptr ||
         caneResetCharacteristic    == nullptr) {
         Serial.println("Failed to find our characteristics");
         client->disconnect();
+        Serial.printf("CSV_CONN,%lu,%lu,%lu,%lu,0,%lu,0\n",
+                      (unsigned long)(t1 - t0),
+                      (unsigned long)(t2 - t1),
+                      (unsigned long)(t3 - t2),
+                      (unsigned long)(t4 - t3),
+                      (unsigned long)(t4 - t0));
         return false;
     }
     Serial.println(" - Found our characteristics");
 
+    bool notifyOk = true;
     if (cane2phoneCharacteristic->canNotify()) {
         cane2phoneCharacteristic->registerForNotify(notifyCallback);
     } else {
         Serial.println("cane2phoneCharacteristic cannot notify");
-        client->disconnect();
-        return false;
+        notifyOk = false;
     }
 
-    if (caneSecurityCharacteristic->canNotify()) {
+    if (notifyOk && caneSecurityCharacteristic->canNotify()) {
         caneSecurityCharacteristic->registerForNotify(notifyCallback);
-    } else {
+    } else if (notifyOk) {
         Serial.println("caneSecurityCharacteristic cannot notify");
+        notifyOk = false;
+    }
+    const uint32_t t5 = micros();
+
+    if (!notifyOk) {
         client->disconnect();
+        Serial.printf("CSV_CONN,%lu,%lu,%lu,%lu,%lu,%lu,0\n",
+                      (unsigned long)(t1 - t0),
+                      (unsigned long)(t2 - t1),
+                      (unsigned long)(t3 - t2),
+                      (unsigned long)(t4 - t3),
+                      (unsigned long)(t5 - t4),
+                      (unsigned long)(t5 - t0));
         return false;
     }
 
     if (serverAddress) delete serverAddress;
     serverAddress = new BLEAddress(myDevice->getAddress().toString().c_str());
     connected = true;
+
+    Serial.printf("CSV_CONN,%lu,%lu,%lu,%lu,%lu,%lu,1\n",
+                  (unsigned long)(t1 - t0),
+                  (unsigned long)(t2 - t1),
+                  (unsigned long)(t3 - t2),
+                  (unsigned long)(t4 - t3),
+                  (unsigned long)(t5 - t4),
+                  (unsigned long)(t5 - t0));
     return true;
 }
 
@@ -408,45 +619,62 @@ void BLEProtocol::requestSecureKey() {
     const char *msg = "{\"action\":\"REQUEST_KEY\"}";
     uint8_t ciphertext[CC_MAX_PACKET_LEN];
     size_t ciphertextLen = sizeof(ciphertext);
+
+    const uint32_t t0 = micros();
     if (!channel->send((const uint8_t*)msg, strlen(msg), ciphertext, ciphertextLen)) {
         Serial.println("Failed to encrypt REQUEST_KEY command");
         return;
     }
+    const uint32_t t1 = micros();
+
     caneSecurityCharacteristic->writeValue(ciphertext, ciphertextLen);
+    const uint32_t t2 = micros();
 
     // bless 0.3.0 does not send GATT notify packets even when char.value is set.
     // The server populates the characteristic synchronously inside its write
     // handler, so by the time writeValue() returns the ATT Write Response the
-    // encrypted key is already there.  Poll-read until we see the 60-byte
-    // response: nonce(12) + ciphertext(32) + GCM-tag(16) = 60 bytes.
+    // encrypted key is already there. Poll-read until we see the 60-byte response.
     for (int attempt = 0; attempt < 10; ++attempt) {
       delay(200);
-  
+
       String val = caneSecurityCharacteristic->readValue();
-  
+
       Serial.printf(
           "requestSecureKey: attempt %d, received %u bytes\n",
           attempt + 1,
           static_cast<unsigned>(val.length())
       );
-  
+
       if (val.length() == 60) {
+          const uint32_t t3 = micros();
           Serial.println("requestSecureKey: key received via poll");
-  
+
           uint8_t buffer[60];
           memcpy(buffer, val.c_str(), sizeof(buffer));
-  
+
           notifyCallback(
               caneSecurityCharacteristic,
               buffer,
               sizeof(buffer),
               false
           );
-  
+
+          Serial.printf("CSV_KEX,%lu,%lu,%lu,%lu,1,%d\n",
+                        (unsigned long)(t1 - t0),
+                        (unsigned long)(t2 - t1),
+                        (unsigned long)(t3 - t2),
+                        (unsigned long)(t3 - t0),
+                        attempt + 1);
           return;
       }
     }
-  
+
+    const uint32_t t3 = micros();
+    Serial.printf("CSV_KEX,%lu,%lu,%lu,%lu,0,10\n",
+                  (unsigned long)(t1 - t0),
+                  (unsigned long)(t2 - t1),
+                  (unsigned long)(t3 - t2),
+                  (unsigned long)(t3 - t0));
     Serial.println("requestSecureKey: key not received via polling");
 }
 

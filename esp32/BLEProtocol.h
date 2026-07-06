@@ -17,6 +17,24 @@ public:
     void checkConnect();
     void transmitMessage(const char* message);
 
+    struct TransmitTiming {
+        uint32_t trialId = 0;
+        size_t payloadLen = 0;
+        size_t ciphertextLen = 0;
+        uint32_t ccSendUs = 0;
+        uint32_t bleWriteUs = 0;
+        uint32_t rttUs = 0;
+        bool ackReceived = false;
+    };
+
+    bool transmitMessageTimed(const char* message,
+                              uint32_t trialId,
+                              uint32_t ackTimeoutMs,
+                              TransmitTiming& timing);
+
+    bool isConnected() const { return connected; }
+    bool isReady() const { return connected && !needSecureKey; }
+
     bool loadSecureKey(unsigned char*, size_t);
     void storeSecureKey(const unsigned char *key, size_t keyLength);
     
@@ -36,6 +54,9 @@ private:
         size_t length,
         bool isNotify
     );
+
+    static uint32_t extractTrialId(const char* plaintext);
+    static bool isAckPayload(const char* plaintext);
 
     bool connectToServer();
 
@@ -73,6 +94,11 @@ private:
     unsigned char secureKey[32];
 
     BLEAddress *serverAddress;
+
+    volatile bool waitingForAck;
+    volatile bool ackReceived;
+    volatile uint32_t pendingAckTrialId;
+    volatile uint32_t ackReceiveUs;
 };
 
 #endif // BLE_PROTOCOL_H

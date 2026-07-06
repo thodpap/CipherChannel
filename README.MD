@@ -40,7 +40,7 @@ The system connects three nodes over Bluetooth Low Energy:
 ## Cryptographic Protocol
 
 All traffic is encrypted with **AES-256-GCM** using a monotonically-increasing
-96-bit counter encoded directly in the GCM nonce (Björn's counter-nonce protocol).
+96-bit counter encoded directly in the GCM nonce.
 
 **Wire format:**
 
@@ -376,5 +376,4 @@ ESP32 (initiator)                          RPi (responder)
 
 ## License
 
-This project is released for research and educational purposes.  
-The `CipherChannel` protocol is attributed to Björn Bergman Turkiewicz.
+This project is released for research and educational purposes.

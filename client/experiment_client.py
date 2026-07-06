@@ -57,7 +57,7 @@ import time
 import uuid as _uuid_mod
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared'))
-from cipher import CipherChannel, ChannelException
+from cipher import CipherChannel, ChannelException, PROVISION_TAG_PHONE
 
 try:
     from bleak import BleakClient, BleakScanner
@@ -75,6 +75,13 @@ KEY: bytes = b'*\xc3,6s\xa4\xa2\xeeI\x08S>\xd0\xff%\x84\xba\xe9\x95\xcaNL\xffzL%
 CLIENT_CSV: str = os.environ.get('EXPERIMENT_CLIENT_CSV_PATH', '/tmp/experiment_client.csv')
 _KEY_ONCE_SESSION_PATH: str = os.environ.get('KEY_ONCE_SESSION_PATH',
                                               '/tmp/cc_session_client_keyonce')
+
+# K_T is static and shared with the cane endpoint, so this side's send/receive
+# counter state under K_T must persist across provisioning sessions at a
+# fixed path -- a fresh per-session path would reset the counter and, on the
+# server's initiator side, reuse a nonce under K_T on every provisioning.
+_PHONE_TRANSPORT_PATH: str = os.environ.get('PHONE_TRANSPORT_PATH',
+                                             '/tmp/cc_transport_client_phone')
 
 _CSV_COLUMNS = [
     'trial_id', 'action', 't_sent_ns',
@@ -125,9 +132,17 @@ async def _key_exchange(client: BleakClient, session_id: str) -> bytes:
 
     Wire format: nonce(12) || ciphertext(32) || tag(16) = 60 bytes.
     Client is responder on the transport channel (server sends even nonces, client receives).
+
+    The transport channel is keyed by the static, shared K_T, so its state
+    is loaded from a fixed path and persists across sessions rather than
+    being recreated fresh each time (session_id only names the operational
+    session channel below, which is keyed by a freshly issued K_phone).
     """
-    transport_path = f'/tmp/cc_transport_client_{session_id}'
-    transport_ch = CipherChannel.create(KEY, False, transport_path)  # responder: expects even nonces
+    try:
+        transport_ch = CipherChannel.load(_PHONE_TRANSPORT_PATH, endpoint_id='phone_transport')
+    except ChannelException:
+        transport_ch = CipherChannel.create(KEY, False, _PHONE_TRANSPORT_PATH,
+                                             endpoint_id='phone_transport')
 
     await client.write_gatt_char(SECURITY_UUID, b"REQUEST_KEY", response=True)
 
@@ -135,7 +150,7 @@ async def _key_exchange(client: BleakClient, session_id: str) -> bytes:
     while asyncio.get_event_loop().time() < deadline:
         raw = bytes(await client.read_gatt_char(SECURITY_UUID))
         if len(raw) == _ENCRYPTED_KEY_LEN:
-            result = transport_ch.receive(raw)
+            result = transport_ch.receive(raw, associated_data=PROVISION_TAG_PHONE)
             if result is not None and len(result) == 32:
                 return result
         await asyncio.sleep(_KEY_POLL_INTERVAL)

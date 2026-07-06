@@ -16,7 +16,7 @@ Characteristics (all in SERVICE_UUID):
                    Cane writes encrypted {"action":"REQUEST_KEY"} (base channel).
                    Server responds by putting encrypted 32-byte cane key here.
                    Cane reads (or receives notify) and calls setSecureKey().
-    CANE2PHONE_UUID    (read+write+notify):
+    CANE2EXO_UUID    (read+write+notify):
                    Cane writes encrypted messages (secure channel) → server decrypts & logs.
     CANE_RESET_UUID    (read+write):
                    Cane writes encrypted {"action":"RESET"} (secure channel) → server logs.
@@ -56,7 +56,7 @@ import time
 import uuid as _uuid_mod
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'shared'))
-from cipher import CipherChannel, ChannelException
+from cipher import CipherChannel, ChannelException, PROVISION_TAG_PHONE, PROVISION_TAG_CANE
 from provisioning_gate import ProvisioningGate, BenchmarkProvisioningGate
 
 try:
@@ -84,7 +84,7 @@ COMMAND_UUID  = "51ff12bb-3ed8-46e5-b4f9-d64e2fec021b"
 ACK_UUID      = "51ff12bc-3ed8-46e5-b4f9-d64e2fec021b"
 
 # Cane (ESP32) channel
-CANE2PHONE_UUID    = "74278bda-b644-4520-8f0c-720eaf059935"
+CANE2EXO_UUID    = "74278bda-b644-4520-8f0c-720eaf059935"
 CANE_SECURITY_UUID = "fa87c0d0-afac-11de-8a39-0800200c9a66"
 CANE_RESET_UUID    = "d2b9a3d4-1a3d-0a6d-d7c8-b4d4d0a4b1e2"
 
@@ -96,8 +96,9 @@ SERVER_CSV = os.environ.get('EXPERIMENT_SERVER_CSV_PATH', '/tmp/experiment_serve
 _STATE_DIR        = pathlib.Path(os.environ.get(
     'AWAKE_STATE_DIR',
     str(pathlib.Path.home() / '.local' / 'share' / 'awake_exp')))
-_CANE_BASE_PATH   = str(_STATE_DIR / 'cc_cane_base')
-_CANE_SECURE_PATH = str(_STATE_DIR / 'cc_cane_secure')
+_CANE_BASE_PATH      = str(_STATE_DIR / 'cc_cane_base')
+_CANE_SECURE_PATH    = str(_STATE_DIR / 'cc_cane_secure')
+_PHONE_TRANSPORT_PATH = str(_STATE_DIR / 'cc_phone_transport')
 
 # Delay before clearing key material from GATT characteristic (seconds).
 # The client must be given time to read the characteristic before we clear it.
@@ -175,8 +176,9 @@ _server: BlessServer = None   # type: ignore
 _loop:   asyncio.AbstractEventLoop = None  # type: ignore
 
 # Phone/laptop session — endpoint-specific operational key K_phone
-_phone_key:     bytes | None          = None
-_phone_channel: CipherChannel | None = None
+_phone_key:               bytes | None          = None
+_phone_channel:           CipherChannel | None = None
+_phone_transport_channel: CipherChannel | None = None
 
 # Cane (ESP32) session — endpoint-specific operational keys K_cane_base / K_cane_secure
 _cane_key:            bytes | None          = None
@@ -199,6 +201,33 @@ def _append_row(endpoint: str, trial_id: str, action: str,
                 t_received_ns: int, t_ack_set_ns: int = 0) -> None:
     with open(SERVER_CSV, 'a', newline='') as f:
         csv.writer(f).writerow([endpoint, trial_id, action, t_received_ns, t_ack_set_ns])
+
+
+# ── Phone channel helpers ──────────────────────────────────────────────────────
+
+def _load_or_create_phone_transport() -> CipherChannel:
+    """
+    Load or create the phone transport channel under K_T. Server is always
+    initiator (sends even counters) on this channel, since the gateway
+    sends the first K_T-protected message (the encrypted operational key);
+    the phone's REQUEST_KEY trigger itself is plaintext.
+
+    A fixed, persistent path is required: K_T is a single static key shared
+    by both endpoints, so each endpoint's send-counter state under K_T must
+    persist across provisioning sessions to guarantee nonce uniqueness. A
+    fresh per-session path here would reset the counter every time and
+    reuse the same nonce under K_T on every provisioning response.
+    """
+    _STATE_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        ch = CipherChannel.load(_PHONE_TRANSPORT_PATH, endpoint_id='phone_transport')
+        print(f"[{_ts()}] Phone transport channel loaded from {_PHONE_TRANSPORT_PATH}")
+        return ch
+    except ChannelException:
+        pass
+    ch = CipherChannel.create(KEY, True, _PHONE_TRANSPORT_PATH, endpoint_id='phone_transport')
+    print(f"[{_ts()}] Phone transport channel created (fresh) at {_PHONE_TRANSPORT_PATH}")
+    return ch
 
 
 # ── Cane channel helpers ───────────────────────────────────────────────────────
@@ -228,11 +257,12 @@ def _load_cane_secure() -> 'CipherChannel | None':
 
 
 def _put_encrypted_to_cane(char_uuid: str, plaintext: bytes,
-                            channel: CipherChannel) -> bool:
+                            channel: CipherChannel,
+                            associated_data: bytes = b'') -> bool:
     if _server is None:
         return False
     try:
-        enc  = channel.send(plaintext)
+        enc  = channel.send(plaintext, associated_data=associated_data)
         char = _server.get_characteristic(char_uuid)
         char.value = bytearray(enc)
         return True
@@ -262,7 +292,34 @@ def _close_phone_session() -> None:
     _phone_channel = None
     _phone_gate.close()
 
+def _put_encrypted_ack_to_cane(trial_id: str, ok: bool = True) -> bool:
+    if _server is None or _cane_secure_channel is None:
+        return False
 
+    try:
+        ack_plain = json.dumps({
+            "action": "ACK",
+            "trial_id": trial_id,
+            "ok": ok
+        }, separators=(',', ':')).encode('utf-8')
+
+        ack_enc = _cane_secure_channel.send(ack_plain)
+
+        ack_char = _server.get_characteristic(CANE2EXO_UUID)
+        ack_char.value = bytearray(ack_enc)
+
+        # Important: setting .value is not the same as sending a notification.
+        try:
+            _server.update_value(SERVICE_UUID, CANE2EXO_UUID)
+        except Exception as e:
+            print(f"[{_ts()}] [cane] ACK notify failed trial={trial_id}: {e}")
+
+        return True
+
+    except Exception as e:
+        print(f"[{_ts()}] [cane] Failed to prepare ACK trial={trial_id}: {e}")
+        return False
+    
 # ── GATT request handlers ─────────────────────────────────────────────────────
 
 def read_request(characteristic: BlessGATTCharacteristic, **kwargs) -> bytearray:
@@ -271,7 +328,7 @@ def read_request(characteristic: BlessGATTCharacteristic, **kwargs) -> bytearray
 
 def write_request(characteristic: BlessGATTCharacteristic, value: any,
                   **kwargs) -> None:
-    global _phone_key, _phone_channel
+    global _phone_key, _phone_channel, _phone_transport_channel
     global _cane_key, _cane_base_channel, _cane_secure_channel
 
     uuid = str(characteristic.uuid).lower()
@@ -291,17 +348,23 @@ def write_request(characteristic: BlessGATTCharacteristic, value: any,
             _phone_key  = os.urandom(32)
             session_id  = _uuid_mod.uuid4().hex[:12]
 
-            # Deliver K_phone via the pre-shared transport channel (initiator side)
-            transport_path = f'/tmp/cc_transport_server_{session_id}'
-            transport_ch   = CipherChannel.create(KEY, True, transport_path,
-                                                  endpoint_id='phone_transport')
+            # Deliver K_phone via the pre-shared transport channel (initiator
+            # side). K_T is static and shared with the cane endpoint, so this
+            # channel's counter state must persist across sessions at a fixed
+            # path -- reusing a fresh path per session would reset the
+            # counter and reuse a nonce under K_T on every provisioning.
+            if _phone_transport_channel is None:
+                _phone_transport_channel = _load_or_create_phone_transport()
 
-            # Create phone session channel — server is responder (K_phone)
+            # Create phone session channel — server is responder (K_phone).
+            # This channel is keyed by a freshly generated K_phone each
+            # session, so a fresh per-session counter here is correct: a new
+            # key means a new nonce space, unlike the K_T transport channel.
             session_path   = f'/tmp/cc_session_server_{session_id}'
             _phone_channel = CipherChannel.create(_phone_key, False, session_path,
                                                   endpoint_id='phone')
 
-            encrypted = transport_ch.send(_phone_key)
+            encrypted = _phone_transport_channel.send(_phone_key, associated_data=PROVISION_TAG_PHONE)
             characteristic.value = bytearray(encrypted)
             print(f"[{_ts()}] [phone] Key issued: session={session_id} ({len(encrypted)} B)")
 
@@ -384,7 +447,8 @@ def write_request(characteristic: BlessGATTCharacteristic, value: any,
                 _cane_key, False, _CANE_SECURE_PATH, endpoint_id='cane_secure')
 
             ok = _put_encrypted_to_cane(
-                CANE_SECURITY_UUID, _cane_key, _cane_base_channel)
+                CANE_SECURITY_UUID, _cane_key, _cane_base_channel,
+                associated_data=PROVISION_TAG_CANE)
             if ok:
                 print(f"[{_ts()}] [cane] Key issued: new K_cane in CANE_SECURITY_UUID")
                 _schedule_clear_char(CANE_SECURITY_UUID)
@@ -397,7 +461,7 @@ def write_request(characteristic: BlessGATTCharacteristic, value: any,
 
         elif action == 'STOP_SHARING':
             # STOP_SHARING means "I received K_cane, clear it from the characteristic."
-            # The secure channel remains alive — RESET and CANE2PHONE follow immediately.
+            # The secure channel remains alive — RESET and CANE2EXO follow immediately.
             print(f"[{_ts()}] [cane] STOP_SHARING received — gate closed, secure channel active")
             _cane_gate.close()
             characteristic.value = bytearray(b'')
@@ -407,18 +471,39 @@ def write_request(characteristic: BlessGATTCharacteristic, value: any,
             print(f"[{_ts()}] [cane] CANE_SECURITY: unknown action={action!r}")
         return
 
-    if uuid == CANE2PHONE_UUID:
+    if uuid == CANE2EXO_UUID:
         t_received = time.perf_counter_ns()
+
         if _cane_secure_channel is None:
-            print(f"[{_ts()}] [cane] CANE2PHONE but no secure channel")
+            print(f"[{_ts()}] [cane] CANE2EXO but no secure channel")
             return
+
         payload_bytes = _cane_secure_channel.receive(data)
         if payload_bytes is None:
-            print(f"[{_ts()}] [cane] CANE2PHONE: decrypt/replay failed — rejected")
+            print(f"[{_ts()}] [cane] CANE2EXO: decrypt/replay failed — rejected")
             return
+
         payload_str = payload_bytes.decode('utf-8', errors='replace')
-        print(f"[{_ts()}] [cane] CANE2PHONE: {payload_str}")
-        _append_row('cane', 'cane2phone', payload_str, t_received)
+
+        try:
+            payload = json.loads(payload_str)
+            trial_id = int(payload.get('trial_id', -1))
+            action = str(payload.get('action', 'unknown'))
+        except Exception as e:
+            trial_id = 'unknown'
+            action = 'parse_error'
+            print(f"[{_ts()}] [cane] CANE2EXO JSON parse error: {e}")
+
+        print(f"[{_ts()}] [cane] CANE2EXO: {payload_str}")
+
+        if _put_encrypted_ack_to_cane(trial_id, ok=True):
+            t_ack_set = time.perf_counter_ns()
+            _append_row('cane', trial_id, action, t_received, t_ack_set)
+            print(f"[{_ts()}] [cane] ACK set   trial={trial_id}  "
+                f"rx→ack={(t_ack_set - t_received) / 1e6:.2f} ms")
+        else:
+            _append_row('cane', trial_id, action, t_received, 0)
+
         return
 
     if uuid == CANE_RESET_UUID:
@@ -466,7 +551,7 @@ def send_command_to_cane(plaintext: bytes) -> bool:
     if _cane_base_channel is None:
         print("No cane base channel — cane key exchange not complete")
         return False
-    return _put_encrypted_to_cane(CANE2PHONE_UUID, plaintext, _cane_base_channel)
+    return _put_encrypted_to_cane(CANE2EXO_UUID, plaintext, _cane_base_channel)
 
 
 def send_reset_to_cane() -> bool:
@@ -517,7 +602,7 @@ async def main() -> None:
             COMMAND_UUID:  {"Properties": W,   "Permissions": GATTAttributePermissions.writeable, "Value": None},
             ACK_UUID:      {"Properties": GATTCharacteristicProperties.read, "Permissions": GATTAttributePermissions.readable, "Value": bytearray(b'READY')},
             CANE_SECURITY_UUID: {"Properties": RWN, "Permissions": RP, "Value": bytearray(b'')},
-            CANE2PHONE_UUID:    {"Properties": RWN, "Permissions": RP, "Value": bytearray(b'')},
+            CANE2EXO_UUID:    {"Properties": RWN, "Permissions": RP, "Value": bytearray(b'')},
             CANE_RESET_UUID:    {"Properties": RW,  "Permissions": RP, "Value": bytearray(b'')},
         }
     }
@@ -526,7 +611,7 @@ async def main() -> None:
     await _server.start()
     print(f"[{_ts()}] {DEVICE_NAME!r} advertising — {len(gatt[SERVICE_UUID])} characteristics.")
     print(f"[{_ts()}] Phone channel : SECURITY / COMMAND / ACK")
-    print(f"[{_ts()}] Cane channel  : CANE_SECURITY / CANE2PHONE / CANE_RESET")
+    print(f"[{_ts()}] Cane channel  : CANE_SECURITY / CANE2EXO / CANE_RESET")
     print(f"[{_ts()}] Cane state    : {_STATE_DIR}")
     if _benchmark_mode:
         print(f"[{_ts()}] Provisioning  : BENCHMARK MODE (gate always open)")

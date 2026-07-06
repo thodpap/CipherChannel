@@ -87,6 +87,16 @@
 // Fixed overhead = CC_NONCE_LEN + CC_TAG_LEN = 28 bytes; ciphertext len == plaintext len
 #define CC_MAX_PACKET_LEN (CC_NONCE_LEN + CC_MAX_PLAIN + CC_TAG_LEN)  // 428 bytes
 
+// Provisioning associated-data tag (must match PROVISION_TAG_CANE in
+// shared/cipher.py). The gateway's cane key-issuance response is encrypted
+// under the transport key K_T, which both endpoints hold; without a bound
+// tag, a response meant for the other endpoint (phone) would authenticate
+// just as well here. Passed as aad/aadLen to CipherChannel::receive() when
+// decrypting the CANE_SECURITY_UUID key response only — not used for any
+// other message type.
+static const uint8_t CC_PROVISION_TAG_CANE[] = "cane_provisioning";
+#define CC_PROVISION_TAG_CANE_LEN (sizeof(CC_PROVISION_TAG_CANE) - 1)
+
 
 // ── 96-bit counter type ───────────────────────────────────────────────────────
 //
@@ -160,17 +170,28 @@ public:
     // Acquires _mutex, checks exhaustion, increments and persists _seqSend,
     // then encrypts.  Plaintext longer than CC_MAX_PLAIN is rejected.
     // out must be at least CC_MAX_PACKET_LEN bytes.
+    // aad/aadLen: optional associated data authenticated by the GCM tag but
+    // not transmitted (not part of out/outLen) and not counted against
+    // CC_MAX_PLAIN — both ends must already agree on it out of band (e.g. a
+    // fixed per-endpoint context string). Defaults to none, reproducing the
+    // original (unbound) wire behaviour for callers that omit it. Used to
+    // bind a provisioning key response to the endpoint it was issued for.
     // Returns true on success, false on any error (mutex released on all paths).
     bool send(const uint8_t* plaintext, size_t len,
-              uint8_t* out, size_t& outLen);
+              uint8_t* out, size_t& outLen,
+              const uint8_t* aad = nullptr, size_t aadLen = 0);
 
     // ── Decrypt & validate ────────────────────────────────────────────────────
     // Acquires _mutex.  Checks counter freshness and parity BEFORE decryption.
+    // aad/aadLen must match the value the sender used in send() or
+    // authentication fails (see send() for why this is not carried on the
+    // wire). Defaults to none, matching send()'s default.
     // Silently returns false for: short/oversized packet, replay, parity
     // mismatch, GCM auth failure, or NVS write failure after successful auth.
     // out must be at least CC_MAX_PLAIN bytes.
     bool receive(const uint8_t* packet, size_t len,
-                 uint8_t* out, size_t& outLen);
+                 uint8_t* out, size_t& outLen,
+                 const uint8_t* aad = nullptr, size_t aadLen = 0);
 
     // ── Key rotation ──────────────────────────────────────────────────────────
     // Acquires _mutex.  Replaces the key, resets counters, and persists.

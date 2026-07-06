@@ -17,6 +17,16 @@ MAX_PACKET_SIZE    = NONCE_LEN + MAX_PLAINTEXT_SIZE + MAC_LEN  # 428 bytes
 _COUNTER_BYTES = NONCE_LEN          # counter serialised to same width as nonce
 _COUNTER_MAX   = (1 << 96) - 1      # exhaustion guard: never reuse nonce at 2^96
 
+# Provisioning associated-data tags. The gateway's REQUEST_KEY response is
+# encrypted under the shared transport key K_T, which both the phone and
+# cane endpoints hold; without a bound tag, a response meant for one
+# endpoint authenticates just as well if delivered to the other. Passing
+# the endpoint's tag as associated_data to CipherChannel.send()/receive()
+# on the transport channel binds the response to the endpoint it was
+# actually issued for, without changing the wire packet at all.
+PROVISION_TAG_PHONE = b'phone_provisioning'
+PROVISION_TAG_CANE  = b'cane_provisioning'
+
 # ── State-file binary layout (all little-endian) ───────────────────────────────
 #  1B  STATE_FORMAT_VERSION
 #  1B  PROTOCOL_VERSION
@@ -199,9 +209,18 @@ class CipherChannel:
 
     # ── send ──────────────────────────────────────────────────────────────────
 
-    def send(self, data: bytes) -> bytes:
+    def send(self, data: bytes, associated_data: bytes = b'') -> bytes:
         """
         Encrypt data and return the wire packet: nonce(12) || ciphertext || tag(16).
+
+        associated_data is authenticated (bound into the GCM tag) but not
+        transmitted and not part of the returned packet: both ends must
+        already agree on it out of band (e.g. a fixed per-endpoint context
+        string), which is how the provisioning key exchange binds a key
+        response to the endpoint it was issued for without adding wire
+        overhead or changing MAX_PACKET_SIZE. Defaults to empty, which
+        reproduces the original (unbound) wire behaviour for callers that
+        do not pass it.
 
         Increments and durably persists the send counter BEFORE returning the
         packet. Raises ChannelException on oversized input, counter exhaustion,
@@ -220,14 +239,20 @@ class CipherChannel:
 
             nonce = self._seq_send.to_bytes(NONCE_LEN, 'little')
             cipher = AES.new(self._key, AES.MODE_GCM, nonce=nonce, mac_len=MAC_LEN)
+            if associated_data:
+                cipher.update(associated_data)
             ciphertext, tag = cipher.encrypt_and_digest(data)
             return nonce + ciphertext + tag
 
     # ── receive ───────────────────────────────────────────────────────────────
 
-    def receive(self, data: bytes) -> Union[bytes, None]:
+    def receive(self, data: bytes, associated_data: bytes = b'') -> Union[bytes, None]:
         """
         Validate and decrypt a wire packet.
+
+        associated_data must match the value the sender used in send() or
+        authentication fails (see send() for why this is not carried on the
+        wire). Defaults to empty, matching send()'s default.
 
         Returns plaintext on success, None on any authentication, replay, parity,
         or size failure. Raises ChannelException if persistence fails after
@@ -257,6 +282,8 @@ class CipherChannel:
 
             try:
                 cipher    = AES.new(self._key, AES.MODE_GCM, nonce=nonce, mac_len=MAC_LEN)
+                if associated_data:
+                    cipher.update(associated_data)
                 plaintext = cipher.decrypt_and_verify(ciphertext, tag)
             except ValueError:
                 return None

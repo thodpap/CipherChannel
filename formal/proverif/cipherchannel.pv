@@ -1,0 +1,240 @@
+(*
+ * CipherChannel symbolic protocol model (Dolev-Yao attacker), ProVerif 2.05.
+ *
+ * Models Section IV of the CipherChannel paper: the dual-key architecture
+ * (Sec. IV-G), the physically gated key exchange (Sec. IV-H / Algorithm 2),
+ * and the persistent counter-nonce send/receive procedure with direction
+ * parity (Sec. IV-E / Algorithm 1). Two independent endpoints (PHONE, CANE)
+ * are modelled to also give a symbolic counterpart to the empirical
+ * cross-endpoint-injection result in Section VI.
+ *
+ * Modelling choices (stated explicitly for reviewers):
+ *   - AES-256-GCM is modelled as an idealised AEAD primitive aenc/adec:
+ *     decryption succeeds only for a ciphertext that was produced by aenc
+ *     with the *same* plaintext, nonce, and key (symbolic Dolev-Yao
+ *     abstraction of IND-CCA confidentiality + INT-CTXT integrity; this is
+ *     the standard idiom for modelling AEAD in the applied pi calculus).
+ *   - The 96-bit little-endian counter is abstracted as a fresh symbolic
+ *     value per send, and the monotonic "counter > last accepted" check is
+ *     abstracted as a "used at most once" table per (endpoint, direction).
+ *     This preserves the adversarial guarantee under test (a previously
+ *     accepted (endpoint, direction, counter) cannot be accepted again) and
+ *     is the property Sec. IV-F's replay argument actually needs; it drops
+ *     only the packet-loss-tolerance detail (accepting any strictly larger
+ *     counter, not just the next one), which is a liveness property, not a
+ *     security property, and is unaffected by an active attacker.
+ *   - Direction parity (even/odd counters) is abstracted as two public,
+ *     structurally distinct tags dirC2G / dirG2C attached to the nonce
+ *     rather than literal mod-2 arithmetic on integers, which ProVerif's
+ *     term algebra does not reason about natively. Both encodings realise
+ *     the same property: the two directions occupy disjoint namespaces that
+ *     a legitimate sender is only willing to construct according to its
+ *     role.
+ *   - The 60-second provisioning timeout is not modelled (ProVerif has no
+ *     clock); the one-shot nature of a provisioning window is instead
+ *     captured by gating each provisioning attempt behind a distinct
+ *     physical button-press event on a channel the attacker cannot access.
+ *
+ * FINDING (see formal/proverif/README.md for full discussion): this model
+ * verifies CipherChannel's key exchange (Algorithm 2) exactly as specified
+ * in the paper and implemented in server/ble_server.py, and ProVerif finds
+ * a genuine cross-endpoint provisioning-confusion attack, not a modelling
+ * artefact. The provisioning response aenc(K_S, provNonce, K_T) carries no
+ * endpoint identity inside the ciphertext; endpoint separation relies only
+ * on phone and cane key exchange using distinct GATT characteristic UUIDs
+ * (SECURITY_UUID vs CANE_SECURITY_UUID -- checked against
+ * shared/cipher.py, where endpoint_id is part of the *local state file*
+ * format only and is never transmitted or authenticated on the wire). An
+ * attacker positioned to relay bytes between those two characteristics
+ * (a stronger, dual-session form of the "session hijacking / MITM" threat
+ * already listed as in-scope in Sec. IV-A) can cause the phone client to
+ * adopt the cane's operational key, or vice versa. Operational-channel
+ * secrecy of both keys still holds (attacker(new K_Sphone) / attacker(new
+ * K_Scane) are both proved), and a forged command still cannot reach the
+ * gateway from an attacker who does not control either legitimate
+ * endpoint's provisioning window -- but the *injective correspondence*
+ * between ClientSend and GatewayAccept fails, because a command sent by
+ * one endpoint under a confused key can be accepted as if it came from the
+ * other. cipherchannel_hardened.pv adds the natural fix (binding the
+ * endpoint identity into the provisioning AEAD) and the same query passes.
+ *)
+
+(* ----- Channels ----- *)
+free cKeyExPhone: channel. (* public BLE link: SECURITY_UUID (phone key exchange) *)
+free cKeyExCane: channel.  (* public BLE link: CANE_SECURITY_UUID (cane key exchange) *)
+free cPhone: channel.      (* public BLE link: phone operational command traffic *)
+free cCane: channel.       (* public BLE link: cane operational command traffic *)
+
+(* Physical presence: an operator pressing the provisioning button on the
+   gateway. Not reachable by the network attacker. *)
+free chBtnPhone: channel [private].
+free chBtnCane: channel [private].
+
+(* ----- Long-term secret ----- *)
+free K_T: bitstring [private].
+
+(* ----- Public constants ----- *)
+free PHONE: bitstring.
+free CANE: bitstring.
+free dirC2G: bitstring.   (* client -> gateway direction tag *)
+free dirG2C: bitstring.   (* gateway -> client direction tag *)
+free REQUEST_KEY: bitstring.
+free STOP_SHARING: bitstring.
+free STAND_UP: bitstring. (* example command; its identity need not be secret *)
+free ackMsg: bitstring.
+free tok: bitstring.      (* lock-mutex token, see GatewayCmdRecv / ClientRecv *)
+
+(* ----- AEAD primitive (models AES-256-GCM) ----- *)
+fun aenc(bitstring, bitstring, bitstring): bitstring. (* plaintext, nonce, key *)
+reduc forall p: bitstring, n: bitstring, k: bitstring;
+  adec(aenc(p, n, k), n, k) = p.
+
+(* ----- Persistent replay-state tables: (endpoint, direction, counter) used at most once ----- *)
+table usedCtr(bitstring, bitstring, bitstring).
+
+(* ----- Events ----- *)
+event GatewayIssuedKey(bitstring, bitstring).      (* endpoint, K_S *)
+event ClientReceivedKey(bitstring, bitstring).     (* endpoint, K_S *)
+event ClientSend(bitstring, bitstring, bitstring). (* endpoint, cmd, counter *)
+event GatewayAccept(bitstring, bitstring, bitstring).
+event GatewaySend(bitstring, bitstring, bitstring).
+event ClientAccept(bitstring, bitstring, bitstring).
+
+(* ================= Operational command channel (Algorithm 1) ================= *)
+(* Leaf processes are defined first: ProVerif's typed pi front-end requires
+   a process macro to be defined before it is referenced. *)
+
+(* Client -> Gateway: supervisory / cane command, e.g. STAND_UP *)
+let ClientCmd(ep: bitstring, K_S: bitstring, opChan: channel) =
+  new ctr: bitstring;
+  let nonceOut = (ctr, dirC2G) in
+  event ClientSend(ep, STAND_UP, ctr);
+  let ctxt = aenc(STAND_UP, nonceOut, K_S) in
+  out(opChan, (nonceOut, ctxt)).
+
+(* ProVerif's typed pi front-end does not support a "let" process calling
+   itself (no self-recursion), so an unbounded but strictly *sequential*
+   server loop -- needed here to model the real implementation's per-channel
+   lock ("Concurrent send() and receive() on the same context are safe...
+   held under a single lock acquisition per call", shared/cipher.py) -- is
+   built with the standard channel-mutex idiom instead: a private lock
+   channel carries a single token; "!" spawns unboundedly many waiters, but
+   only the one holding the token may enter the critical section (the
+   check-then-insert on usedCtr), and it must return the token before the
+   next waiter can proceed. Without this, "!"-replicating the receiver
+   directly lets ProVerif interleave two copies between "get" and "insert"
+   of the same table entry -- a check-then-act race the real lock rules out. *)
+let GatewayCmdRecvOnce(ep: bitstring, K_S: bitstring, opChan: channel, lockRecv: channel) =
+  in(opChan, (nonceIn: bitstring, ctxtIn: bitstring));
+  let (ctrIn: bitstring, dirIn: bitstring) = nonceIn in
+  if dirIn = dirC2G then
+    get usedCtr(=ep, =dirC2G, =ctrIn) in
+      out(lockRecv, tok) (* stale or replayed counter: dropped, release lock *)
+    else
+      insert usedCtr(ep, dirC2G, ctrIn);
+      let cmd = adec(ctxtIn, nonceIn, K_S) in
+      ( event GatewayAccept(ep, cmd, ctrIn); out(lockRecv, tok) )
+      else out(lockRecv, tok) (* tampered / wrong-key: dropped, release lock *)
+  else
+    out(lockRecv, tok).
+
+let GatewayCmdRecv(ep: bitstring, K_S: bitstring, opChan: channel) =
+  new lockRecv: channel;
+  ( out(lockRecv, tok)
+  | ! ( in(lockRecv, =tok); GatewayCmdRecvOnce(ep, K_S, opChan, lockRecv) ) ).
+
+(* Gateway -> Client: ACK / notification on the same operational key *)
+let GatewayNotify(ep: bitstring, K_S: bitstring, opChan: channel) =
+  new ctr: bitstring;
+  let nonceOut = (ctr, dirG2C) in
+  event GatewaySend(ep, ackMsg, ctr);
+  let ctxt = aenc(ackMsg, nonceOut, K_S) in
+  out(opChan, (nonceOut, ctxt)).
+
+let ClientRecvOnce(ep: bitstring, K_S: bitstring, opChan: channel, lockRecv: channel) =
+  in(opChan, (nonceIn: bitstring, ctxtIn: bitstring));
+  let (ctrIn: bitstring, dirIn: bitstring) = nonceIn in
+  if dirIn = dirG2C then
+    get usedCtr(=ep, =dirG2C, =ctrIn) in
+      out(lockRecv, tok)
+    else
+      insert usedCtr(ep, dirG2C, ctrIn);
+      let msg = adec(ctxtIn, nonceIn, K_S) in
+      ( event ClientAccept(ep, msg, ctrIn); out(lockRecv, tok) )
+      else out(lockRecv, tok)
+  else
+    out(lockRecv, tok).
+
+let ClientRecv(ep: bitstring, K_S: bitstring, opChan: channel) =
+  new lockRecv: channel;
+  ( out(lockRecv, tok)
+  | ! ( in(lockRecv, =tok); ClientRecvOnce(ep, K_S, opChan, lockRecv) ) ).
+
+(* ================= Physically gated key exchange (Algorithm 2) ================= *)
+(* Split per endpoint (rather than parameterised by ep) so that each
+   endpoint's freshly generated operational key is a syntactically distinct
+   ProVerif restriction; this lets each key's secrecy be stated as its own
+   "query attacker(new K_Sphone)" / "query attacker(new K_Scane)" below,
+   which ProVerif requires to be unambiguous. *)
+
+let GatewayProvisionPhone(chBtn: channel, opChan: channel) =
+  in(chBtn, =REQUEST_KEY);
+  in(cKeyExPhone, =REQUEST_KEY);
+  new K_Sphone: bitstring;
+  new provNonce: bitstring;
+  let provPkt = aenc(K_Sphone, provNonce, K_T) in
+  event GatewayIssuedKey(PHONE, K_Sphone);
+  out(cKeyExPhone, (provNonce, provPkt));
+  ( GatewayCmdRecv(PHONE, K_Sphone, opChan) | ! GatewayNotify(PHONE, K_Sphone, opChan) ).
+
+let ClientProvisionPhone(opChan: channel) =
+  out(cKeyExPhone, REQUEST_KEY);
+  in(cKeyExPhone, (provNonceIn: bitstring, provPktIn: bitstring));
+  let K_Sphone = adec(provPktIn, provNonceIn, K_T) in
+  event ClientReceivedKey(PHONE, K_Sphone);
+  ( ! ClientCmd(PHONE, K_Sphone, opChan) | ClientRecv(PHONE, K_Sphone, opChan) ).
+
+let GatewayProvisionCane(chBtn: channel, opChan: channel) =
+  in(chBtn, =REQUEST_KEY);
+  in(cKeyExCane, =REQUEST_KEY);
+  new K_Scane: bitstring;
+  new provNonce: bitstring;
+  let provPkt = aenc(K_Scane, provNonce, K_T) in
+  event GatewayIssuedKey(CANE, K_Scane);
+  out(cKeyExCane, (provNonce, provPkt));
+  ( GatewayCmdRecv(CANE, K_Scane, opChan) | ! GatewayNotify(CANE, K_Scane, opChan) ).
+
+let ClientProvisionCane(opChan: channel) =
+  out(cKeyExCane, REQUEST_KEY);
+  in(cKeyExCane, (provNonceIn: bitstring, provPktIn: bitstring));
+  let K_Scane = adec(provPktIn, provNonceIn, K_T) in
+  event ClientReceivedKey(CANE, K_Scane);
+  ( ! ClientCmd(CANE, K_Scane, opChan) | ClientRecv(CANE, K_Scane, opChan) ).
+
+(* ================= Security queries ================= *)
+
+(* Confidentiality of the operational keys (Sec. IV-H closing paragraph):
+   the attacker never learns either endpoint's operational key. *)
+query attacker(new K_Sphone).
+query attacker(new K_Scane).
+
+(* Command authentication + anti-replay + anti-reflection + anti-forgery
+   (Sec. IV-F Security Invariant), stated as one injective correspondence:
+   every command the gateway accepts for a given endpoint was actually sent,
+   with that exact counter, by that endpoint's legitimate client, and each
+   such send is accepted at most once. *)
+query ep: bitstring, cmd: bitstring, ctr: bitstring;
+  inj-event(GatewayAccept(ep, cmd, ctr)) ==> inj-event(ClientSend(ep, cmd, ctr)).
+
+(* ================= Main process ================= *)
+
+process
+  ( (* legitimate operator presses the provisioning button, arbitrarily often, for either endpoint *)
+    ! out(chBtnPhone, REQUEST_KEY)
+  | ! out(chBtnCane, REQUEST_KEY)
+    (* gateway and client roles, replicated for unboundedly many sessions *)
+  | ! GatewayProvisionPhone(chBtnPhone, cPhone)
+  | ! GatewayProvisionCane(chBtnCane, cCane)
+  | ! ClientProvisionPhone(cPhone)
+  | ! ClientProvisionCane(cCane)
+  )

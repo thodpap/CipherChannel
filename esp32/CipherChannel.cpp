@@ -179,7 +179,8 @@ CipherChannel* CipherChannel::load(const char* nvsNamespace) {
 // ── send ──────────────────────────────────────────────────────────────────────
 
 bool CipherChannel::send(const uint8_t* plaintext, size_t len,
-                         uint8_t* out, size_t& outLen) {
+                         uint8_t* out, size_t& outLen,
+                         const uint8_t* aad, size_t aadLen) {
     if (!_mutex || xSemaphoreTake(_mutex, portMAX_DELAY) != pdTRUE) return false;
 
     bool ok = false;
@@ -222,8 +223,8 @@ bool CipherChannel::send(const uint8_t* plaintext, size_t len,
 
         ret = mbedtls_gcm_crypt_and_tag(&gcm, MBEDTLS_GCM_ENCRYPT,
                                         len,
-                                        nonce,   CC_NONCE_LEN,
-                                        nullptr, 0,
+                                        nonce, CC_NONCE_LEN,
+                                        aad,   aadLen,
                                         plaintext, cipherOut,
                                         CC_TAG_LEN, tagOut);
         mbedtls_gcm_free(&gcm);
@@ -246,7 +247,8 @@ bool CipherChannel::send(const uint8_t* plaintext, size_t len,
 // ── receive ───────────────────────────────────────────────────────────────────
 
 bool CipherChannel::receive(const uint8_t* packet, size_t len,
-                            uint8_t* out, size_t& outLen) {
+                            uint8_t* out, size_t& outLen,
+                            const uint8_t* aad, size_t aadLen) {
     outLen = 0;
 
     if (!_mutex || xSemaphoreTake(_mutex, portMAX_DELAY) != pdTRUE) return false;
@@ -285,7 +287,7 @@ bool CipherChannel::receive(const uint8_t* packet, size_t len,
 
         ret = mbedtls_gcm_auth_decrypt(&gcm, ciphertextLen,
                                        nonce,      CC_NONCE_LEN,
-                                       nullptr,    0,
+                                       aad,        aadLen,
                                        tag,        CC_TAG_LEN,
                                        ciphertext, out);
         mbedtls_gcm_free(&gcm);
